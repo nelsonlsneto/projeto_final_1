@@ -1,0 +1,37 @@
+API
+
+DEPUTADOS
+
+- Link: https://dadosabertos.camara.leg.br/api/v2/deputados
+
+Esse link traz todos os deputados em exercício no momento da requisição
+
+- Link: https://dadosabertos.camara.leg.br/api/v2/deputados/{id}/despesas?ano=2026&mes=4
+
+Conseguimos ver a despesa de cada deputado com essas requisições. Se não for passado parâmetro de data, a requisição traz últimos seis meses de dados
+
+PROPOSIÇÕES
+
+- Link: https://dadosabertos.camara.leg.br/api/v2/proposicoes?dataInicio=YYYY-MM-DD
+
+Lista de informações básicas sobre projetos de lei, resoluções, medidas provisórias, emendas, pareceres e todos os outros tipos de proposições na Câmara. Se não for passado parâmetro de data, retorna últimos 30 dias.
+Aqui vai listar as proposições pela data do status, não necessariamente a data que a proposta foi apresentada
+
+- Link: https://dadosabertos.camara.leg.br/api/v2/proposicoes/{id}
+
+Maiores informações sobre cada proposição
+
+- Link: https://dadosabertos.camara.leg.br/api/v2/proposicoes/{id}/autores
+
+Lista os autores de cada proposição
+
+VOTAÇÕES
+
+- Link: https://dadosabertos.camara.leg.br/api/v2/votacoes?dataInicio=YYYY-MM-DD
+
+Retorna uma lista de informações básicas sobre as votações ocorridas em eventos dos diversos órgãos da Câmara.
+Se não forem passados parâmetros que delimitem o intervalo de tempo da pesquisa, são retornados dados sobre todas as votações ocorridas nos últimos 30 dias, em eventos de todos os órgãos.
+
+Link: https://dadosabertos.camara.leg.br/api/v2/votacoes/{id}
+
+Retorna um conjunto detalhado de dados sobre a votação
