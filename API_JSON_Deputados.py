@@ -98,7 +98,7 @@ if response.status_code == 200:
 
     # 2) Salvando
     with open(caminho_salvar, "w", encoding="utf-8") as arquivo:
-        json.dump(dados_api, arquivo, indent=4, ensure_ascii=False)
+        json.dump(despesas_final, arquivo, indent=4, ensure_ascii=False)
 
     print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 
