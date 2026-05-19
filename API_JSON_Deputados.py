@@ -31,7 +31,7 @@ while current_date <= end_date:
     dates.append(current_date)
     current_date = current_date + relativedelta(months=1)
 
-
+############################################################################
 # 1) BAIXANDO DADOS DE TODOS OS DEPUTADOS ATIVOS
 
 url = 'https://dadosabertos.camara.leg.br/api/v2/deputados'
@@ -45,7 +45,7 @@ if response.status_code == 200:
     
     # Salvando os dados json
 
-    caminho_salvar = Path.home() / "Desktop" / "PosEngDados" / "projeto_final_1" / "Dados" / "Bronze" / "brz_deputados.json"
+    caminho_salvar = Path(__file__).parent / "Dados" / "Bronze" / "brz_deputados.json"
 
     # 1) Cria a pasta se ela não existir
     caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
@@ -59,6 +59,7 @@ if response.status_code == 200:
 else:
     print("A requisição dos deputados não deu certo  :(")
 
+###############################################################################
 # 2) BAIXANDO DADOS DE DESPESAS DE CADA DEPUTADO
 
 if response.status_code == 200:
@@ -91,7 +92,7 @@ if response.status_code == 200:
 
     # Salvando os dados json
 
-    caminho_salvar = Path.home() / "Desktop" / "PosEngDados" / "projeto_final_1" / "Dados" / "Bronze" / "brz_despesas_deputados.json"
+    caminho_salvar = Path(__file__).parent / "Dados" / "Bronze" / "brz_despesas_deputados.json"
 
     # 1) Cria a pasta se ela não existir
     caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
