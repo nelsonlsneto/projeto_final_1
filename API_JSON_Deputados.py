@@ -75,8 +75,9 @@ if response.status_code == 200:
 
     for i in ids:
         for date in dates:
-            for pag in range(1, 3):
-                url = f'https://dadosabertos.camara.leg.br/api/v2/deputados/{i}/despesas?ano={date.year}&mes={date.month}&ordem=ASC&ordenarPor=ano&pagina={pag}&itens=100'
+            contador = 1
+            while contador <= 100:
+                url = f'https://dadosabertos.camara.leg.br/api/v2/deputados/{i}/despesas?ano={date.year}&mes={date.month}&ordem=ASC&ordenarPor=ano&pagina={contador}&itens=100'
                 response = requests.get(url)
 
                 dados_json = response.json()
@@ -90,9 +91,16 @@ if response.status_code == 200:
 
                     despesas_final.append(despesas)
 
+                    print(i, date.year, date.month, contador) #print para acompanhar as requisições
+
+                    contador += 1
+                
+                else:
+                    contador = 101  # Isto vai fazer o loop while parar
+
     # Salvando os dados json
 
-    caminho_salvar = Path(__file__).parent / "Dados" / "Bronze" / "brz_despesas_deputados.json"
+    caminho_salvar = Path(__file__).parent / "Dados" / "Bronze" / "brz_deputados_despesas.json"
 
     # 1) Cria a pasta se ela não existir
     caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
