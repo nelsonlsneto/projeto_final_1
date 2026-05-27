@@ -49,7 +49,7 @@ while contador <= 100:
 
         if response.json()['dados'] != []:
 
-            dados_api = response.json()
+            dados_api = response.json()['dados']
 
             print(contador) #print para acompanhar as requisições
 
@@ -82,11 +82,7 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 # 2) BAIXANDO DADOS DE CADA ID DE VOTAÇÃO
 
 # Recuperando os ids de cada votação
-ids = []
-
-for page_data in votacao:
-  for d in page_data['dados']:
-    ids.append(d['id'])
+ids = [registro["id"] for registro in votacao[0]]
 
 votacao_final = []
 

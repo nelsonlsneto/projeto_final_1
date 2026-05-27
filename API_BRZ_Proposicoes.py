@@ -49,7 +49,7 @@ while contador <= 100:
 
         if response.json()['dados'] != []:
 
-            dados_api = response.json()
+            dados_api = response.json()['dados']
 
             print(contador) #print para acompanhar as requisições
 
