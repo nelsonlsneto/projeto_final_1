@@ -10,25 +10,25 @@ from dateutil.relativedelta import relativedelta
 ############################################################################
 # LENDO DADOS JSON
 
-path = Path(r".\Dados\Bronze\brz_deputados_despesas.json")
+path = Path(r".\Dados\Bronze\brz_proposicoes_autoria.json")
 
 df_json = pd.read_json(path)
 
-df_explodido = df_json.explode('despesa').reset_index(drop=True)
+df_explodido = df_json.explode('autoria').reset_index(drop=True)
 
-df_despesas = pd.json_normalize(df_explodido['despesa'])
+df_autoria = pd.json_normalize(df_explodido['autoria'])
 
-df_final = pd.concat([df_explodido[['deputado']], df_despesas], axis=1)
+df_final = pd.concat([df_explodido[['proposicao']], df_autoria], axis=1)
 
 # Escolhendo as colunas no df final
 
-colunas = ['deputado', 'tipoDespesa', 'codDocumento', 'codTipoDocumento', 'dataDocumento', 'numDocumento', 'valorDocumento', 'nomeFornecedor', 'valorLiquido', 'valorGlosa', 'numRessarcimento', 'codLote', 'parcela']
+colunas = ['nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
 
 df_final = df_final[colunas]
 
 # Salvando os dados
 
-caminho_salvar = Path(__file__).parent / "Dados" / "Silver" / "slv_deputados_despesas.parquet"
+caminho_salvar = Path(__file__).parent / "Dados" / "Silver" / "slv_proposicoes_autoria.parquet"
 
 # 1) Cria a pasta se ela não existir
 caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
