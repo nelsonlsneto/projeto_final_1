@@ -22,7 +22,7 @@ df_final = pd.concat([df_explodido[['proposicao']], df_autoria], axis=1)
 
 # Escolhendo as colunas no df final
 
-colunas = ['nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
+colunas = ['proposicao', 'nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
 
 df_final = df_final[colunas]
 
