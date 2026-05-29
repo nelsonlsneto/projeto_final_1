@@ -85,8 +85,16 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 ids = []
 
 for page_data in proposicao:
-  for d in page_data['dados']:
-    ids.append(d['id'])
+
+    if isinstance(page_data, dict):
+        dados_pagina = page_data.get("dados", [])
+    elif isinstance(page_data, list):
+        dados_pagina = page_data
+    else:
+        dados_pagina = []
+
+    for d in dados_pagina:
+        ids.append(d["id"])
 
 autoria_final = []
 
