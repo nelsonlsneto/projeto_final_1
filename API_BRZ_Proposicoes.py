@@ -81,20 +81,8 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 ###############################################################################
 # 2) BAIXANDO DADOS DE AUTORIA DE CADA PROPOSIÇÃO
 
-# Recuperando os ids de cada proposição
-ids = []
-
-for page_data in proposicao:
-
-    if isinstance(page_data, dict):
-        dados_pagina = page_data.get("dados", [])
-    elif isinstance(page_data, list):
-        dados_pagina = page_data
-    else:
-        dados_pagina = []
-
-    for d in dados_pagina:
-        ids.append(d["id"])
+# Recuperando os ids de cada votação
+ids = [registro["id"] for registro in proposicao[0]]
 
 autoria_final = []
 
