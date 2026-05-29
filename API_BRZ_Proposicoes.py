@@ -87,21 +87,19 @@ ids = [registro["id"] for registro in proposicao[0]]
 autoria_final = []
 
 for id in ids:
-    url = f'https://dadosabertos.camara.leg.br/api/v2/proposicoes/{id}/autores'
+    url = f"https://dadosabertos.camara.leg.br/api/v2/proposicoes/{id}/autores"
 
     response = requests.get(url)
 
     if response.status_code == 200:
         print(f"A requisição da autoria da proposição {id} deu certo!")
 
-        dados_json = response.json()
+        dados_autoria = response.json().get("dados", [])
 
-        autoria = {}
-                
-        autoria['proposicao'] = id
-        autoria['autoria'] = dados_json['dados']
-          
-        autoria_final.append(autoria)
+        for autor in dados_autoria:
+            autor["proposicao_id"] = id
+
+        autoria_final.extend(dados_autoria)
 
     else:
         print(f"A requisição da autoria da proposição {id} não deu certo  :(")

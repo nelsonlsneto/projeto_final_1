@@ -24,11 +24,11 @@ df_prop = df_prop[['id', 'codTipo', 'ementa', 'dataApresentacao']]
 
 df_prop.rename(columns={'codTipo': 'codigo_tipo_sigla', 'dataApresentacao': 'data_apresentacao'}, inplace=True)
 
-df_aut = df_aut[['proposicao', 'nome', 'codTipo']]
+df_aut = df_aut[['proposicao_id', 'nome', 'codTipo']]
 
 df_aut.rename(columns={'codTipo': 'codigo_tipo'}, inplace=True)
 
-df_merge = pd.merge(df_prop, df_aut, left_on='id', right_on='proposicao', how="left")
+df_merge = pd.merge(df_prop, df_aut, left_on='id', right_on='proposicao_id', how='left')
 
 df_merge = df_merge[['id', 'codigo_tipo_sigla', 'ementa', 'data_apresentacao', 'nome', 'codigo_tipo']]
 
