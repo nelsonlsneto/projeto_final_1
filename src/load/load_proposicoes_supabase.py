@@ -32,7 +32,6 @@ def criar_tabela() -> None:
             created_at TIMESTAMP DEFAULT NOW()
         );
     """
-
     with engine.begin() as connection:
         connection.execute(text(sql))
 
@@ -43,13 +42,11 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = pd.read_parquet(ARQUIVO_SILVER)
 
-    df = df.rename(
-        columns={
-            "siglaTipo": "sigla_tipo",
-            "codTipo": "cod_tipo",
-            "dataApresentacao": "data_apresentacao",
-        }
-    )
+    df = df.rename(columns={
+        "siglaTipo": "sigla_tipo",
+        "codTipo": "cod_tipo",
+        "dataApresentacao": "data_apresentacao",
+    })
 
     colunas = [
         "id",
@@ -89,39 +86,22 @@ def carregar_supabase(df: pd.DataFrame) -> None:
     with engine.begin() as connection:
         connection.execute(text(f"DROP TABLE IF EXISTS {tabela_temp};"))
 
-    df.to_sql(
-        tabela_temp,
-        engine,
-        if_exists="replace",
-        index=False,
-    )
+    df.to_sql(tabela_temp, engine, if_exists="replace", index=False)
 
     sql = """
         INSERT INTO proposicoes (
-            id,
-            sigla_tipo,
-            cod_tipo,
-            numero,
-            ano,
-            ementa,
-            data_apresentacao
+            id, sigla_tipo, cod_tipo, numero, ano, ementa, data_apresentacao
         )
         SELECT
-            id,
-            sigla_tipo,
-            cod_tipo,
-            numero,
-            ano,
-            ementa,
-            data_apresentacao
+            id, sigla_tipo, cod_tipo, numero, ano, ementa, data_apresentacao
         FROM tmp_proposicoes
         ON CONFLICT (id)
         DO UPDATE SET
-            sigla_tipo = EXCLUDED.sigla_tipo,
-            cod_tipo = EXCLUDED.cod_tipo,
-            numero = EXCLUDED.numero,
-            ano = EXCLUDED.ano,
-            ementa = EXCLUDED.ementa,
+            sigla_tipo       = EXCLUDED.sigla_tipo,
+            cod_tipo         = EXCLUDED.cod_tipo,
+            numero           = EXCLUDED.numero,
+            ano              = EXCLUDED.ano,
+            ementa           = EXCLUDED.ementa,
             data_apresentacao = EXCLUDED.data_apresentacao;
     """
 

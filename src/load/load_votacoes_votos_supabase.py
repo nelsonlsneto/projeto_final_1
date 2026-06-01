@@ -17,7 +17,7 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
-ARQUIVO_SILVER = BASE_DIR / "Dados" / "Silver" / "slv_votacoes_votos.parquet"
+ARQUIVO_GOLD = BASE_DIR / "Dados" / "Gold" / "gld_votacoes_votos.parquet"
 
 
 def criar_tabela() -> None:
@@ -26,16 +26,7 @@ def criar_tabela() -> None:
             id BIGSERIAL PRIMARY KEY,
             votacao_id TEXT,
             tipo_voto TEXT,
-            data_registro_voto TIMESTAMP,
             deputado_id BIGINT,
-            deputado_uri TEXT,
-            deputado_nome TEXT,
-            deputado_sigla_partido TEXT,
-            deputado_uri_partido TEXT,
-            deputado_sigla_uf TEXT,
-            deputado_id_legislatura INTEGER,
-            deputado_url_foto TEXT,
-            deputado_email TEXT,
             hash_registro TEXT UNIQUE,
             created_at TIMESTAMP DEFAULT NOW()
         );
@@ -50,7 +41,6 @@ def gerar_hash(row) -> str:
         row.get("votacao_id"),
         row.get("deputado_id"),
         row.get("tipo_voto"),
-        row.get("data_registro_voto"),
     ]
 
     texto = "|".join([str(campo) for campo in campos])
@@ -58,41 +48,15 @@ def gerar_hash(row) -> str:
 
 
 def carregar_arquivo() -> pd.DataFrame:
-    if not ARQUIVO_SILVER.exists():
-        raise FileNotFoundError(f"Arquivo não encontrado: {ARQUIVO_SILVER}")
+    if not ARQUIVO_GOLD.exists():
+        raise FileNotFoundError(f"Arquivo não encontrado: {ARQUIVO_GOLD}")
 
-    df = pd.read_parquet(ARQUIVO_SILVER)
-
-    df = df.rename(
-        columns={
-            "votacao": "votacao_id",
-            "tipoVoto": "tipo_voto",
-            "dataRegistroVoto": "data_registro_voto",
-            "deputado_.id": "deputado_id",
-            "deputado_.uri": "deputado_uri",
-            "deputado_.nome": "deputado_nome",
-            "deputado_.siglaPartido": "deputado_sigla_partido",
-            "deputado_.uriPartido": "deputado_uri_partido",
-            "deputado_.siglaUf": "deputado_sigla_uf",
-            "deputado_.idLegislatura": "deputado_id_legislatura",
-            "deputado_.urlFoto": "deputado_url_foto",
-            "deputado_.email": "deputado_email",
-        }
-    )
+    df = pd.read_parquet(ARQUIVO_GOLD)
 
     colunas = [
-        "votacao_id",
+        "id_votacao",
         "tipo_voto",
-        "data_registro_voto",
         "deputado_id",
-        "deputado_uri",
-        "deputado_nome",
-        "deputado_sigla_partido",
-        "deputado_uri_partido",
-        "deputado_sigla_uf",
-        "deputado_id_legislatura",
-        "deputado_url_foto",
-        "deputado_email",
     ]
 
     for coluna in colunas:
@@ -101,9 +65,9 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = df[colunas]
 
-    df["data_registro_voto"] = pd.to_datetime(df["data_registro_voto"], errors="coerce")
+    df = df.rename(columns={"id_votacao": "votacao_id"})
+
     df["deputado_id"] = pd.to_numeric(df["deputado_id"], errors="coerce").astype("Int64")
-    df["deputado_id_legislatura"] = pd.to_numeric(df["deputado_id_legislatura"], errors="coerce").astype("Int64")
 
     df["hash_registro"] = df.apply(gerar_hash, axis=1)
 
@@ -133,31 +97,13 @@ def carregar_supabase(df: pd.DataFrame) -> None:
         INSERT INTO votacoes_votos (
             votacao_id,
             tipo_voto,
-            data_registro_voto,
             deputado_id,
-            deputado_uri,
-            deputado_nome,
-            deputado_sigla_partido,
-            deputado_uri_partido,
-            deputado_sigla_uf,
-            deputado_id_legislatura,
-            deputado_url_foto,
-            deputado_email,
             hash_registro
         )
         SELECT
             votacao_id,
             tipo_voto,
-            data_registro_voto,
             deputado_id,
-            deputado_uri,
-            deputado_nome,
-            deputado_sigla_partido,
-            deputado_uri_partido,
-            deputado_sigla_uf,
-            deputado_id_legislatura,
-            deputado_url_foto,
-            deputado_email,
             hash_registro
         FROM tmp_votacoes_votos
         ON CONFLICT (hash_registro)
