@@ -194,6 +194,8 @@ cd projeto_final_1
 
 # 2. Instalar dependências
 uv sync
+# ou, com pip tradicional:
+pip install -r requirements.txt
 
 # 3. Configurar credenciais (copie o exemplo e preencha)
 copy .env.example .env
