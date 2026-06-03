@@ -200,13 +200,28 @@ copy .env.example .env
 #    Edite o .env com sua connection string do Supabase e sua chave OpenAI
 
 # 4. Rodar o pipeline (na ordem)
-uv run API_BRZ_Deputados.py        # Extração -> Bronze
-uv run API_BRZ_Proposicoes.py
-uv run API_BRZ_Votacoes.py
-uv run BRZ_SLV_Deputados.py        # Limpeza -> Silver
-# ... (demais scripts BRZ_SLV_)
-uv run SLV_GLD_Proposicoes.py      # Modelagem -> Gold
-# ... (demais scripts SLV_GLD_)
+
+# --- Bronze: extração da API (salva JSON bruto) ---
+uv run API_BRZ_Deputados.py          # deputados + despesas
+uv run API_BRZ_Partidos.py
+uv run API_BRZ_Proposicoes.py        # proposições + autoria
+uv run API_BRZ_Votacoes.py           # votações + detalhes + votos
+
+# --- Silver: limpeza e normalização (salva Parquet) ---
+uv run BRZ_SLV_Deputados.py
+uv run BRZ_SLV_Deputados_Despesas.py
+uv run BRZ_SLV_Partidos.py
+uv run BRZ_SLV_Proposicoes.py
+uv run BRZ_SLV_Proposicoes_Autoria.py
+uv run BRZ_SLV_Votacoes.py
+uv run BRZ_SLV_Votacoes_Detalhes.py
+uv run BRZ_SLV_Votacoes_Votos.py
+
+# --- Gold: modelagem e validações (salva Parquet) ---
+uv run SLV_GLD_Deputados_Despesas.py
+uv run SLV_GLD_Proposicoes.py
+uv run SLV_GLD_Votacoes.py
+uv run SLV_GLD_Votacoes_Votos.py
 ```
 
 > **Nunca** commite o arquivo `.env`. Ele já está no `.gitignore`.
@@ -303,8 +318,6 @@ order by qtd_deputados desc;
 ---
 
 ## Próximos Passos
-- [x] Carga dos dados no PostgreSQL (Supabase)
-- [ ] Dimensão `partidos`
 - [ ] Camada de IA: resumo executivo das proposições
 - [ ] Workflow n8n: email semanal automatizado
 - [ ] Dashboard de indicadores (proposições por tema, partido mais ativo)
