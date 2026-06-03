@@ -117,6 +117,67 @@ Workflow agendado que, semanalmente:
 
 ---
 
+## Decisões Técnicas
+
+As principais escolhas de engenharia do projeto e o raciocínio por trás de cada uma.
+
+### Arquitetura e armazenamento
+
+- **Arquitetura Medalhão (Bronze → Silver → Gold).** Separa o pipeline em camadas com
+  responsabilidades claras: dado bruto, dado limpo e dado modelado. Facilita encontrar e
+  corrigir problemas, e é um padrão consolidado no mercado de engenharia de dados.
+- **Salvar o JSON bruto na camada Bronze antes de qualquer transformação.** Se a etapa de
+  transformação quebrar, não é preciso chamar a API de novo — basta reprocessar o arquivo
+  já salvo. Isso poupa tempo e respeita os limites da API pública.
+- **Parquet nas camadas Silver e Gold.** Formato colunar, tipado e compactado: ocupa menos
+  espaço e é muito mais rápido de ler do que CSV/JSON para o volume que manipulamos.
+- **PostgreSQL gerenciado no Supabase.** Plano gratuito generoso, painel web para visualizar
+  as tabelas e rodar SQL, e link fácil de compartilhar na avaliação — sem precisar instalar
+  banco na máquina. (O `pgvector` já vem habilitado, deixando aberta a porta para evoluções
+  com embeddings no futuro.)
+
+### Modelagem
+
+- **Modelo dimensional simples (estrela), com tabelas fato e dimensão.** Deixa as consultas
+  analíticas naturais (ex.: "quanto cada partido gastou") e é fácil de entender. As tabelas
+  fato (`fat_*`) ficam na camada Gold; as dimensão (`dim_*`), na Silver.
+
+### Ingestão
+
+- **Extração incremental de 1 dia, com orquestração diária.** A API retorna, por padrão, uma
+  janela recente; em vez de baixar anos de histórico de uma vez (lento e arriscado), o
+  pipeline puxa o movimento do dia e roda todo dia. Cargas históricas maiores são feitas
+  manualmente ajustando a data inicial, quando necessário.
+
+### Camada de IA
+
+- **Resumo executivo (em vez de classificação por embeddings).** O resumo gerado pela IA
+  aparece **direto no produto final** (o e-mail semanal), em linguagem clara para um
+  executivo. Ou seja, a IA agrega valor visível e imediato, não fica como enfeite técnico.
+- **Modelo `gpt-4o-mini`.** Qualidade mais que suficiente para resumir ementas, a um custo
+  de centavos. O custo é controlado testando primeiro com 10 proposições antes de rodar o
+  lote completo.
+
+> _Decisão preliminar do grupo; a abordagem e o prompt finais serão confirmados na
+> implementação da camada de IA._
+
+### Automação
+
+- **Workflow de e-mail semanal no n8n.** Entrega o "produto" da consultoria de forma
+  tangível e demonstrável, conectando-se diretamente ao PostgreSQL para montar o relatório.
+
+### Boas práticas
+
+- **Segredos fora do versionamento.** Chaves de API e credenciais ficam só no `.env`
+  (ignorado pelo `.gitignore`); o repositório traz apenas um `.env.example` como modelo.
+- **Acesso ao banco para avaliação via usuário somente-leitura.** Um papel dedicado que só
+  faz `SELECT`, evitando qualquer risco de alteração acidental dos dados.
+- **Gerenciamento de dependências com `uv`** (`pyproject.toml` + `uv.lock`), garantindo um
+  ambiente reproduzível.
+- **Versionamento com branches e Pull Requests**, mantendo o histórico organizado e revisável.
+
+---
+
 ## Como Rodar
 
 ### Pré-requisitos
