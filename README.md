@@ -36,29 +36,21 @@ importa, resume com IA e entrega pronto para virar produto.
 O projeto segue a **Arquitetura Medalhão** (Bronze -> Silver -> Gold), padrão de mercado
 em engenharia de dados:
 
-```mermaid
-flowchart LR
-    A[API Camara dos Deputados] -->|requests + paginacao| B[Bronze - JSON bruto]
-    B -->|limpeza / json_normalize| C[Silver - Parquet tipado]
-    C -->|merges / validacoes| D[Gold - Parquet modelado]
-    D -->|OpenAI gpt-4o-mini| E[Enriquecimento IA - coluna resumo_ia]
-    E -->|SQLAlchemy| F[(PostgreSQL - Supabase)]
-    F -->|query semanal| G[n8n - Email automatico]
-```
+![Diagrama do pipeline do Radar Legislativo](docs/img/pipeline.png)
 
 | Camada | Formato | Responsabilidade |
 |--------|---------|------------------|
 | **Bronze** | JSON | Dado bruto da API, salvo intacto (não chama a API de novo se o transform quebrar) |
 | **Silver** | Parquet | Seleção de colunas, normalização de estruturas aninhadas, tipagem. Guarda as tabelas dimensão. |
 | **Gold** | Parquet | Joins entre tabelas, validações de qualidade. Guarda as tabelas fato. |
-| **IA** | Parquet | Resumo executivo de cada proposição via LLM |
 | **PostgreSQL** | Supabase | Banco final, consultável e pronto para produto |
+| **IA** | PostgreSQL | Resumo executivo de cada proposição (coluna `resumo_ia`) via LLM, gravado no banco |
 | **n8n** | Workflow | Automação: email semanal com as proposições mais relevantes |
 
 > A extração puxa, por padrão, os dados de **1 dia** (o orquestrador roda diariamente).
 > Cargas históricas (ex.: 30 dias) são feitas manualmente ajustando a data inicial.
 
-> Diagrama detalhado no Excalidraw: _(link a inserir)_
+> Fonte editável do diagrama: [`docs/img/pipeline.excalidraw`](docs/img/pipeline.excalidraw) (abra em [excalidraw.com](https://excalidraw.com)).
 
 ---
 
@@ -316,13 +308,6 @@ order by qtd_deputados desc;
 
 > As credenciais acima são intencionalmente **somente-leitura** e públicas para fins de
 > avaliação. Tentativas de escrita são bloqueadas pelo banco (`permission denied`).
-
----
-
-## Próximos Passos
-- [ ] Camada de IA: resumo executivo das proposições
-- [ ] Workflow n8n: email semanal automatizado
-- [ ] Dashboard de indicadores (proposições por tema, partido mais ativo)
 
 ---
 
