@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import shutil
+import sys
 
 # PARÂMETROS
 
@@ -29,7 +30,11 @@ end_date = datetime.strptime(data_ontem, "%Y-%m-%d")
 # LENDO DADOS PARQUET DA DIMENSÃO DE AUTORIA
 path_aut = Path(r".\Dados\Silver\slv_proposicoes_autoria.parquet")
 
-df_aut = pd.read_parquet(path_aut)
+try:
+    df_aut = pd.read_parquet(path_aut)
+except:
+    print("Sem novas proposições")
+    sys.exit()
 
 # LENDO DADOS PARQUET PARTICIONADOS
 

@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import shutil
+import sys
 
 ############################################################################
 # LENDO DADOS JSON
@@ -20,7 +21,11 @@ dados_brutos = path.read_text(encoding="utf-8")
 dados_lista = json.loads(dados_brutos)
 
 # 3. Extrai a lista interna [0] e cria o DataFrame diretamente
-df = pd.DataFrame(dados_lista[0])
+try:
+    df = pd.DataFrame(dados_lista[0])
+except:
+    print("Sem novas proposições")
+    sys.exit()
 
 # 4. Filtra apenas as colunas desejadas
 colunas = [

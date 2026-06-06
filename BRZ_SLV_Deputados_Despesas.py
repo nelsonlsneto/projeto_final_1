@@ -7,13 +7,18 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import shutil
+import sys
 
 ############################################################################
 # LENDO DADOS JSON
 
 path = Path(r".\Dados\Bronze\brz_deputados_despesas.json")
 
-df_json = pd.read_json(path)
+try:
+    df_json = pd.read_json(path)
+except:
+    print("Sem novas despesas")
+    sys.exit()
 
 df_explodido = df_json.explode('despesa').reset_index(drop=True)
 
