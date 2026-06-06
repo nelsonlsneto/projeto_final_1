@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import shutil
+import sys
 
 # PARÂMETROS
 
@@ -41,10 +42,14 @@ filtros_particao = [
 ]
 
 #Lendo parquet
-df = pd.read_parquet(
+try:
+    df = pd.read_parquet(
     path,
     filters = filtros_particao
 )
+except:
+    print("Sem novas despesas")
+    sys.exit()
 
 # Escolhendo as colunas no df final
 

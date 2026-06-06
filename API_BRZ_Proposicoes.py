@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import time
+import sys
 
 # PARÂMETROS
 
@@ -82,7 +83,11 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 # 2) BAIXANDO DADOS DE AUTORIA DE CADA PROPOSIÇÃO
 
 # Recuperando os ids de cada votação
-ids = [registro["id"] for registro in proposicao[0]]
+try:
+    ids = [registro["id"] for registro in proposicao[0]]
+except:
+    print("Sem novas proposições")
+    sys.exit()
 
 autoria_final = []
 

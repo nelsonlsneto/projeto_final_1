@@ -6,13 +6,18 @@ from pathlib import Path
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import sys
 
 ############################################################################
 # LENDO DADOS JSON
 
 path = Path(r".\Dados\Bronze\brz_proposicoes_autoria.json")
 
-df_json = pd.read_json(path)
+try:
+    df_json = pd.read_json(path)
+except:
+    print("Sem novas proposições")
+    sys.exit()
 
 df_explodido = df_json.explode('autoria').reset_index(drop=True)
 
