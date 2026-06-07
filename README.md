@@ -59,22 +59,24 @@ em engenharia de dados:
 Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 
 **Tabelas Fato (camada Gold)**
-- `fat_proposicoes` — `id`, `codigo_tipo_sigla`, `ementa`, `data_apresentacao`, `autor_nome`, **`resumo_ia`** (coluna a ser criada pela camada de IA)
-- `fat_votacoes` — `id_votacao`, `data`, `descricao`, `aprovacao`, `id_proposicao`
-- `fat_votacoes_votos` — `id_votacao`, `deputado_id`, `tipo_voto`
-- `fat_deputados_despesas` — `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
+- `fat_proposicoes` — `id`, `sigla_tipo`, `cod_tipo`, `numero`, `ano`, `ementa`, `data_apresentacao`, **`resumo_ia`** (coluna preenchida pela camada de IA)
+- `fat_votacoes` — `id_votacao`, `data`, `descricao`, `aprovacao`, `id_proposicao`, `ementa`, `proposicao_objeto`
+- `fat_votacoes_votos` — `id`, `votacao_id`, `deputado_id`, `tipo_voto`
+- `fat_deputados_despesas` — `id`, `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
 
 **Tabelas Dimensão (camada Silver)**
-- `dim_deputados` — `id`, `uri`, `nome`, `sigla_partido`, `uri_partido`, `sigla_uf`, `id_legislatura` (513 registros)
-- `dim_proposicoes_autoria` — autoria de cada proposição (`proposicao`, `nome`, `codigo_tipo`)
-- `dim_votacoes_detalhes` — detalhamento das votações
-- `dim_partidos` — `sigla`, `nome` _(a adicionar)_
+- `dim_deputados` — `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (513 registros)
+- `dim_proposicoes_autoria` — `id`, `proposicao_id`, `nome`, `tipo`, `cod_tipo`, `proponente`
+- `dim_votacoes_detalhes` — `id`, `votacao_id`, `descricao`, `sigla_orgao`, `proposicao_objeto`
+- `dim_partidos` — _(a carregar no banco)_
+
+> Todas as tabelas possuem `created_at` (e algumas `hash_registro`) como metadados de controle e particionamento.
 
 **Relacionamentos**
 - `fat_votacoes_votos.deputado_id` -> `dim_deputados.id`
 - `fat_deputados_despesas.deputado` -> `dim_deputados.id`
 - `fat_votacoes.id_proposicao` -> `fat_proposicoes.id`
-- `dim_proposicoes_autoria.proposicao` -> `fat_proposicoes.id`
+- `dim_proposicoes_autoria.proposicao_id` -> `fat_proposicoes.id`
 
 ---
 
