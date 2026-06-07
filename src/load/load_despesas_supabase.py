@@ -1,9 +1,8 @@
+import hashlib
 import os
-import time
 from pathlib import Path
 
 import pandas as pd
-import requests
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 
@@ -18,117 +17,68 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
+# Lê do Gold — gerado pelo SLV_GLD_Deputados_Despesas.py
+# 8 colunas: deputado, tipoDespesa, codDocumento, codTipoDocumento,
+#            dataDocumento, numDocumento, nomeFornecedor, valorLiquido
+ARQUIVO_GOLD = BASE_DIR / "Dados" / "Gold" / "gld_deputados_despesas.parquet"
 
-def buscar_ids_deputados() -> list[int]:
+
+def criar_tabela() -> None:
+    sql = """
+        CREATE TABLE IF NOT EXISTS fat_deputados_despesas (
+            id               BIGSERIAL PRIMARY KEY,
+            deputado         BIGINT,
+            tipo_despesa     TEXT,
+            cod_documento    TEXT,
+            cod_tipo_documento INTEGER,
+            data_documento   DATE,
+            num_documento    TEXT,
+            nome_fornecedor  TEXT,
+            valor_liquido    NUMERIC,
+            hash_registro    TEXT UNIQUE,
+            created_at       TIMESTAMP DEFAULT NOW()
+        );
     """
-    Busca os IDs dos deputados já carregados no Supabase.
-    """
-    query = "SELECT id FROM deputados ORDER BY id;"
-
-    df = pd.read_sql(query, engine)
-
-    ids = df["id"].dropna().astype(int).tolist()
-
-    if not ids:
-        raise ValueError("Nenhum deputado encontrado na tabela deputados. Rode load_deputados_supabase.py primeiro.")
-
-    return ids
+    with engine.begin() as connection:
+        connection.execute(text(sql))
 
 
-def buscar_despesas_deputado(id_deputado: int, ano: int = 2025) -> pd.DataFrame:
-    """
-    Busca despesas de um deputado específico na API da Câmara.
-    """
-    url = f"https://dadosabertos.camara.leg.br/api/v2/deputados/{id_deputado}/despesas"
-
-    todas_despesas = []
-    pagina = 1
-
-    while True:
-        params = {
-            "ano": ano,
-            "pagina": pagina,
-            "itens": 100,
-            "ordem": "ASC",
-            "ordenarPor": "ano",
-        }
-
-        try:
-            response = requests.get(url, params=params, timeout=60)
-        except requests.RequestException as erro:
-            print(f"Erro de conexão para deputado {id_deputado}, página {pagina}: {erro}")
-            break
-
-        if response.status_code != 200:
-            print(f"Erro API deputado {id_deputado}, página {pagina}: {response.status_code}")
-            break
-
-        dados = response.json().get("dados", [])
-
-        if not dados:
-            break
-
-        todas_despesas.extend(dados)
-
-        print(f"Deputado {id_deputado} | Página {pagina} | Registros {len(dados)}")
-
-        pagina += 1
-        time.sleep(0.2)
-
-    if not todas_despesas:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(todas_despesas)
-    df["deputado_id"] = id_deputado
-
-    return df
+def gerar_hash(row) -> str:
+    campos = [
+        row.get("deputado"),
+        row.get("cod_documento"),
+        row.get("num_documento"),
+        row.get("valor_liquido"),
+    ]
+    texto = "|".join([str(c) for c in campos])
+    return hashlib.md5(texto.encode("utf-8")).hexdigest()
 
 
-def tratar_despesas(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Padroniza nomes de colunas e tipos de dados para gravar no Supabase.
-    """
-    if df.empty:
-        return df
+def carregar_arquivo() -> pd.DataFrame:
+    if not ARQUIVO_GOLD.exists():
+        raise FileNotFoundError(f"Arquivo não encontrado: {ARQUIVO_GOLD}")
 
-    df = df.rename(
-        columns={
-            "tipoDespesa": "tipo_despesa",
-            "codDocumento": "cod_documento",
-            "tipoDocumento": "tipo_documento",
-            "codTipoDocumento": "cod_tipo_documento",
-            "dataDocumento": "data_documento",
-            "numDocumento": "num_documento",
-            "valorDocumento": "valor_documento",
-            "urlDocumento": "url_documento",
-            "nomeFornecedor": "nome_fornecedor",
-            "cnpjCpfFornecedor": "cnpj_cpf_fornecedor",
-            "valorLiquido": "valor_liquido",
-            "valorGlosa": "valor_glosa",
-            "numRessarcimento": "num_ressarcimento",
-            "codLote": "cod_lote",
-        }
-    )
+    df = pd.read_parquet(ARQUIVO_GOLD)
+
+    df = df.rename(columns={
+        "tipoDespesa":     "tipo_despesa",
+        "codDocumento":    "cod_documento",
+        "codTipoDocumento": "cod_tipo_documento",
+        "dataDocumento":   "data_documento",
+        "numDocumento":    "num_documento",
+        "nomeFornecedor":  "nome_fornecedor",
+        "valorLiquido":    "valor_liquido",
+    })
 
     colunas = [
-        "deputado_id",
-        "ano",
-        "mes",
+        "deputado",
         "tipo_despesa",
         "cod_documento",
-        "tipo_documento",
         "cod_tipo_documento",
         "data_documento",
         "num_documento",
-        "url_documento",
         "nome_fornecedor",
-        "cnpj_cpf_fornecedor",
-        "valor_documento",
-        "valor_glosa",
         "valor_liquido",
-        "num_ressarcimento",
-        "cod_lote",
-        "parcela",
     ]
 
     for coluna in colunas:
@@ -137,87 +87,57 @@ def tratar_despesas(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df[colunas]
 
-    colunas_inteiras = [
-    "deputado_id",
-    "ano",
-    "mes",
-    "cod_tipo_documento",
-    "parcela",
-]
+    df["deputado"]          = pd.to_numeric(df["deputado"],          errors="coerce").astype("Int64")
+    df["cod_tipo_documento"] = pd.to_numeric(df["cod_tipo_documento"], errors="coerce").astype("Int64")
+    df["valor_liquido"]     = pd.to_numeric(df["valor_liquido"],     errors="coerce")
+    df["data_documento"]    = pd.to_datetime(df["data_documento"],   errors="coerce").dt.date
+    df["cod_documento"]     = df["cod_documento"].astype(str)
+    df["num_documento"]     = df["num_documento"].astype(str)
 
-    for coluna in colunas_inteiras:
-        df[coluna] = pd.to_numeric(df[coluna], errors="coerce").astype("Int64")
-    
-    df["cod_documento"] = df["cod_documento"].astype(str)
-    df["cod_lote"] = df["cod_lote"].astype(str)
-
-    colunas_valores = [
-        "valor_documento",
-        "valor_glosa",
-        "valor_liquido",
-    ]
-
-    for coluna in colunas_valores:
-        df[coluna] = pd.to_numeric(df[coluna], errors="coerce")
-
-    df["data_documento"] = pd.to_datetime(df["data_documento"], errors="coerce").dt.date
-
-    df = df.drop_duplicates(
-        subset=[
-            "deputado_id",
-            "ano",
-            "mes",
-            "cod_documento",
-            "num_documento",
-            "valor_liquido",
-        ]
-    )
+    df["hash_registro"] = df.apply(gerar_hash, axis=1)
+    df = df.drop_duplicates(subset=["hash_registro"])
 
     return df
 
 
-def carregar_despesas(df: pd.DataFrame) -> None:
-    """
-    Carrega despesas no Supabase.
-    """
+def carregar_supabase(df: pd.DataFrame) -> None:
     if df.empty:
         print("Nenhuma despesa para carregar.")
         return
 
-    df.to_sql(
-        "despesas",
-        engine,
-        if_exists="append",
-        index=False,
-    )
+    tabela_temp = "tmp_fat_deputados_despesas"
 
-    print(f"{len(df)} despesas inseridas no Supabase.")
+    with engine.begin() as connection:
+        connection.execute(text(f"DROP TABLE IF EXISTS {tabela_temp};"))
+
+    df.to_sql(tabela_temp, engine, if_exists="replace", index=False)
+
+    sql = """
+        INSERT INTO fat_deputados_despesas (
+            deputado, tipo_despesa, cod_documento, cod_tipo_documento,
+            data_documento, num_documento, nome_fornecedor,
+            valor_liquido, hash_registro
+        )
+        SELECT
+            deputado, tipo_despesa, cod_documento, cod_tipo_documento,
+            data_documento, num_documento, nome_fornecedor,
+            valor_liquido, hash_registro
+        FROM tmp_fat_deputados_despesas
+        ON CONFLICT (hash_registro)
+        DO NOTHING;
+    """
+
+    with engine.begin() as connection:
+        connection.execute(text(sql))
+        connection.execute(text(f"DROP TABLE IF EXISTS {tabela_temp};"))
+
+    print(f"{len(df)} despesas carregadas no Supabase.")
 
 
 def main():
-    ano = 2025
-
-    ids_deputados = buscar_ids_deputados()
-
-    print(f"Total de deputados encontrados no banco: {len(ids_deputados)}")
-
-    lista_dfs = []
-
-    for id_deputado in ids_deputados:
-        df_despesas = buscar_despesas_deputado(id_deputado, ano=ano)
-
-        if not df_despesas.empty:
-            lista_dfs.append(df_despesas)
-
-    if not lista_dfs:
-        print("Nenhuma despesa encontrada.")
-        return
-
-    df_final = pd.concat(lista_dfs, ignore_index=True)
-
-    df_final = tratar_despesas(df_final)
-
-    carregar_despesas(df_final)
+    criar_tabela()
+    df = carregar_arquivo()
+    carregar_supabase(df)
 
 
 if __name__ == "__main__":

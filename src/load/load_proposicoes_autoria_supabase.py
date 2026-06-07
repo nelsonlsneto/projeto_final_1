@@ -21,17 +21,17 @@ ARQUIVO_SILVER = BASE_DIR / "Dados" / "Silver" / "slv_proposicoes_autoria.parque
 
 def criar_tabela() -> None:
     sql = """
-        CREATE TABLE IF NOT EXISTS proposicoes_autoria (
-            id BIGSERIAL PRIMARY KEY,
-            nome TEXT,
-            cod_tipo INTEGER,
-            tipo TEXT,
+        CREATE TABLE IF NOT EXISTS dim_proposicoes_autoria (
+            id               BIGSERIAL PRIMARY KEY,
+            proposicao_id    BIGINT,
+            nome             TEXT,
+            cod_tipo         INTEGER,
+            tipo             TEXT,
             ordem_assinatura INTEGER,
-            proponente BOOLEAN,
-            created_at TIMESTAMP DEFAULT NOW()
+            proponente       BOOLEAN,
+            created_at       TIMESTAMP DEFAULT NOW()
         );
     """
-
     with engine.begin() as connection:
         connection.execute(text(sql))
 
@@ -42,14 +42,13 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = pd.read_parquet(ARQUIVO_SILVER)
 
-    df = df.rename(
-        columns={
-            "codTipo": "cod_tipo",
-            "ordemAssinatura": "ordem_assinatura",
-        }
-    )
+    df = df.rename(columns={
+        "codTipo":         "cod_tipo",
+        "ordemAssinatura": "ordem_assinatura",
+    })
 
     colunas = [
+        "proposicao_id",
         "nome",
         "cod_tipo",
         "tipo",
@@ -63,8 +62,12 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = df[colunas]
 
-    df["cod_tipo"] = pd.to_numeric(df["cod_tipo"], errors="coerce").astype("Int64")
+    df["proposicao_id"]    = pd.to_numeric(df["proposicao_id"],    errors="coerce").astype("Int64")
+    df["cod_tipo"]         = pd.to_numeric(df["cod_tipo"],         errors="coerce").astype("Int64")
     df["ordem_assinatura"] = pd.to_numeric(df["ordem_assinatura"], errors="coerce").astype("Int64")
+
+    # Converte inteiro (0/1) para boolean — necessário para o PostgreSQL aceitar
+    df["proponente"] = df["proponente"].astype(bool)
 
     df = df.drop_duplicates()
 
@@ -77,16 +80,16 @@ def carregar_supabase(df: pd.DataFrame) -> None:
         return
 
     with engine.begin() as connection:
-        connection.execute(text("TRUNCATE TABLE proposicoes_autoria RESTART IDENTITY;"))
+        connection.execute(text("TRUNCATE TABLE dim_proposicoes_autoria RESTART IDENTITY;"))
 
     df.to_sql(
-        "proposicoes_autoria",
+        "dim_proposicoes_autoria",
         engine,
         if_exists="append",
         index=False,
     )
 
-    print(f"{len(df)} registros de autoria de proposições carregados no Supabase.")
+    print(f"{len(df)} registros de autoria carregados no Supabase.")
 
 
 def main():
