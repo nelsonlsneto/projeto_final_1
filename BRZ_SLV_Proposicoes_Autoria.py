@@ -6,13 +6,18 @@ from pathlib import Path
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import sys
 
 ############################################################################
 # LENDO DADOS JSON
 
 path = Path(r".\Dados\Bronze\brz_proposicoes_autoria.json")
 
-df_json = pd.read_json(path)
+try:
+    df_json = pd.read_json(path)
+except:
+    print("Sem novas proposições")
+    sys.exit()
 
 # Se o JSON vier no formato antigo, com a coluna 'autoria'
 if "autoria" in df_json.columns:

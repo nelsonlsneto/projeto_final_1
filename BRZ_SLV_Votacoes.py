@@ -6,6 +6,8 @@ from pathlib import Path
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import shutil
+import sys
 
 ############################################################################
 # LENDO DADOS JSON
@@ -19,7 +21,11 @@ dados_brutos = path.read_text(encoding="utf-8")
 dados_lista = json.loads(dados_brutos)
 
 # 3. Extrai a lista interna [0] e cria o DataFrame diretamente
-df_final = pd.DataFrame(dados_lista[0])
+try:
+    df_final = pd.DataFrame(dados_lista[0])
+except:
+    print("Sem novas votações")
+    sys.exit()
 
 # 4. Filtra apenas as colunas desejadas
 colunas = [
@@ -41,7 +47,25 @@ caminho_salvar = Path(__file__).parent / "Dados" / "Silver" / "slv_votacoes.parq
 # 1) Cria a pasta se ela não existir
 caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
 
-# 2) Salvando
-df_final.to_parquet(caminho_salvar, index=False)
+# 2) Identifica quais combinações de ano e mês existem no DataFrame atual
+particoes_alvo = df_final['data'].astype(str).drop_duplicates().tolist()
+
+# 3) Deleta manualmente apenas as pastas que serão impactadas
+for data in particoes_alvo:
+    # Garante a conversão para string no formato YYYY-MM-DD se for do tipo date/datetime
+    data_str = str(data) 
+    pasta_particao = caminho_salvar / f"data={data_str}"
+    print(pasta_particao)
+    
+    if pasta_particao.exists():
+        shutil.rmtree(pasta_particao)
+
+# 4) Salvando
+## Vamos particionar por ano/mês, pois a requisição apenas recebe parâmetro de ano e mês
+df_final.to_parquet(
+    path = caminho_salvar,
+    partition_cols = ['data'],
+    engine='pyarrow'
+)
 
 print(f"Sucesso! Arquivo parquet salvo em: {caminho_salvar}")

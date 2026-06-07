@@ -7,23 +7,24 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import time
+import sys
 
 # PARÂMETROS
 
 ############################################################################
 # Podemos alterar manualmente a data inicial para pegar dados históricos (formato YYYY-MM-DD)
 
-data_ini = '2026-05-21'
+data_ini = ''
 
 ############################################################################
 
 if data_ini == '':
-    data_ini = datetime.now().strftime("%Y-%m-%d")
+    data_ini = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
-data_hoje = datetime.now().strftime("%Y-%m-%d")
+data_ontem = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
 start_date = datetime.strptime(data_ini, "%Y-%m-%d")
-end_date = datetime.strptime(data_hoje, "%Y-%m-%d")
+end_date = datetime.strptime(data_ontem, "%Y-%m-%d")
 
 dates = []
 current_date = start_date
@@ -82,7 +83,11 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 # 2) BAIXANDO DADOS DE CADA ID DE VOTAÇÃO
 
 # Recuperando os ids de cada votação
-ids = [registro["id"] for registro in votacao[0]]
+try:
+    ids = [registro["id"] for registro in votacao[0]]
+except:
+    print("Sem novas votações")
+    sys.exit()
 
 votacao_final = []
 
