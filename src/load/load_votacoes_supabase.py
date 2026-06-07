@@ -21,21 +21,20 @@ ARQUIVO_GOLD = BASE_DIR / "Dados" / "Gold" / "gld_votacoes.parquet"
 
 
 def criar_tabela() -> None:
+
     sql = """
-        CREATE TABLE IF NOT EXISTS votacoes (
-            id_votacao TEXT,
-            data DATE,
+        CREATE TABLE IF NOT EXISTS fat_votacoes (
+            id_votacao       TEXT,
+            data             DATE,
             proposicao_objeto TEXT,
-            descricao TEXT,
-            aprovacao TEXT,
-            votacao_id TEXT,
+            descricao        TEXT,
+            aprovacao        TEXT,
             votacao_id_orgao INTEGER,
-            votacao_descricao TEXT,
-            origem_lista TEXT,
-            id_proposicao BIGINT,
-            ementa TEXT,
-            hash_registro TEXT UNIQUE,
-            created_at TIMESTAMP DEFAULT NOW()
+            origem_lista     TEXT,
+            id_proposicao    BIGINT,
+            ementa           TEXT,
+            hash_registro    TEXT UNIQUE,
+            created_at       TIMESTAMP DEFAULT NOW()
         );
     """
     with engine.begin() as connection:
@@ -58,6 +57,7 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = pd.read_parquet(ARQUIVO_GOLD)
 
+    # Renomeia votacao_idOrgao para snake_case
     df = df.rename(columns={"votacao_idOrgao": "votacao_id_orgao"})
 
     colunas = [
@@ -66,9 +66,7 @@ def carregar_arquivo() -> pd.DataFrame:
         "proposicao_objeto",
         "descricao",
         "aprovacao",
-        "votacao_id",
         "votacao_id_orgao",
-        "votacao_descricao",
         "origem_lista",
         "id_proposicao",
         "ementa",
@@ -96,7 +94,7 @@ def carregar_supabase(df: pd.DataFrame) -> None:
         print("Nenhuma votação para carregar.")
         return
 
-    tabela_temp = "tmp_votacoes"
+    tabela_temp = "tmp_fat_votacoes"
 
     with engine.begin() as connection:
         connection.execute(text(f"DROP TABLE IF EXISTS {tabela_temp};"))
@@ -104,16 +102,14 @@ def carregar_supabase(df: pd.DataFrame) -> None:
     df.to_sql(tabela_temp, engine, if_exists="replace", index=False)
 
     sql = """
-        INSERT INTO votacoes (
+        INSERT INTO fat_votacoes (
             id_votacao, data, proposicao_objeto, descricao, aprovacao,
-            votacao_id, votacao_id_orgao, votacao_descricao,
-            origem_lista, id_proposicao, ementa, hash_registro
+            votacao_id_orgao, origem_lista, id_proposicao, ementa, hash_registro
         )
         SELECT
             id_votacao, data, proposicao_objeto, descricao, aprovacao,
-            votacao_id, votacao_id_orgao, votacao_descricao,
-            origem_lista, id_proposicao, ementa, hash_registro
-        FROM tmp_votacoes
+            votacao_id_orgao, origem_lista, id_proposicao, ementa, hash_registro
+        FROM tmp_fat_votacoes
         ON CONFLICT (hash_registro)
         DO NOTHING;
     """
@@ -122,7 +118,7 @@ def carregar_supabase(df: pd.DataFrame) -> None:
         connection.execute(text(sql))
         connection.execute(text(f"DROP TABLE IF EXISTS {tabela_temp};"))
 
-    print(f"{len(df)} registros de votações processados no Supabase.")
+    print(f"{len(df)} registros de votações carregados no Supabase.")
 
 
 def main():

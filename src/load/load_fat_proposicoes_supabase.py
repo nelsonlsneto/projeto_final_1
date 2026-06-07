@@ -16,20 +16,22 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
+# Silver agora é uma pasta particionada (BRZ_SLV_Proposicoes.py atualizado)
+# pd.read_parquet() lida com pastas particionadas automaticamente
 ARQUIVO_SILVER = BASE_DIR / "Dados" / "Silver" / "slv_proposicoes.parquet"
 
 
 def criar_tabela() -> None:
     sql = """
-        CREATE TABLE IF NOT EXISTS proposicoes (
-            id BIGINT PRIMARY KEY,
-            sigla_tipo TEXT,
-            cod_tipo INTEGER,
-            numero INTEGER,
-            ano INTEGER,
-            ementa TEXT,
+        CREATE TABLE IF NOT EXISTS fat_proposicoes (
+            id                BIGINT PRIMARY KEY,
+            sigla_tipo        TEXT,
+            cod_tipo          INTEGER,
+            numero            INTEGER,
+            ano               INTEGER,
+            ementa            TEXT,
             data_apresentacao DATE,
-            created_at TIMESTAMP DEFAULT NOW()
+            created_at        TIMESTAMP DEFAULT NOW()
         );
     """
     with engine.begin() as connection:
@@ -40,12 +42,15 @@ def carregar_arquivo() -> pd.DataFrame:
     if not ARQUIVO_SILVER.exists():
         raise FileNotFoundError(f"Arquivo não encontrado: {ARQUIVO_SILVER}")
 
+    # Lê todas as partições de uma vez
     df = pd.read_parquet(ARQUIVO_SILVER)
 
     df = df.rename(columns={
-        "siglaTipo": "sigla_tipo",
-        "codTipo": "cod_tipo",
-        "dataApresentacao": "data_apresentacao",
+        "siglaTipo":             "sigla_tipo",
+        "codTipo":               "cod_tipo",
+        "dataApresentacao":      "data_apresentacao",
+        # coluna nova de partição — vira data_apresentacao se não existir a original
+        "dataApresentacao_data": "data_apresentacao",
     })
 
     colunas = [
@@ -64,10 +69,10 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = df[colunas]
 
-    df["id"] = pd.to_numeric(df["id"], errors="coerce").astype("Int64")
+    df["id"]       = pd.to_numeric(df["id"],       errors="coerce").astype("Int64")
     df["cod_tipo"] = pd.to_numeric(df["cod_tipo"], errors="coerce").astype("Int64")
-    df["numero"] = pd.to_numeric(df["numero"], errors="coerce").astype("Int64")
-    df["ano"] = pd.to_numeric(df["ano"], errors="coerce").astype("Int64")
+    df["numero"]   = pd.to_numeric(df["numero"],   errors="coerce").astype("Int64")
+    df["ano"]      = pd.to_numeric(df["ano"],       errors="coerce").astype("Int64")
     df["data_apresentacao"] = pd.to_datetime(df["data_apresentacao"], errors="coerce").dt.date
 
     df = df.dropna(subset=["id"])
@@ -81,7 +86,7 @@ def carregar_supabase(df: pd.DataFrame) -> None:
         print("Nenhuma proposição para carregar.")
         return
 
-    tabela_temp = "tmp_proposicoes"
+    tabela_temp = "tmp_fat_proposicoes"
 
     with engine.begin() as connection:
         connection.execute(text(f"DROP TABLE IF EXISTS {tabela_temp};"))
@@ -89,19 +94,19 @@ def carregar_supabase(df: pd.DataFrame) -> None:
     df.to_sql(tabela_temp, engine, if_exists="replace", index=False)
 
     sql = """
-        INSERT INTO proposicoes (
+        INSERT INTO fat_proposicoes (
             id, sigla_tipo, cod_tipo, numero, ano, ementa, data_apresentacao
         )
         SELECT
             id, sigla_tipo, cod_tipo, numero, ano, ementa, data_apresentacao
-        FROM tmp_proposicoes
+        FROM tmp_fat_proposicoes
         ON CONFLICT (id)
         DO UPDATE SET
-            sigla_tipo       = EXCLUDED.sigla_tipo,
-            cod_tipo         = EXCLUDED.cod_tipo,
-            numero           = EXCLUDED.numero,
-            ano              = EXCLUDED.ano,
-            ementa           = EXCLUDED.ementa,
+            sigla_tipo        = EXCLUDED.sigla_tipo,
+            cod_tipo          = EXCLUDED.cod_tipo,
+            numero            = EXCLUDED.numero,
+            ano               = EXCLUDED.ano,
+            ementa            = EXCLUDED.ementa,
             data_apresentacao = EXCLUDED.data_apresentacao;
     """
 
