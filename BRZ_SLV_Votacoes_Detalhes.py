@@ -6,6 +6,8 @@ from pathlib import Path
 import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
+import shutil
+import sys
 
 ############################################################################
 # LENDO DADOS JSON
@@ -13,8 +15,12 @@ from dateutil.relativedelta import relativedelta
 path = Path(r".\Dados\Bronze\brz_votacoes_detalhes.json")
 
 # 1. Carrega o arquivo JSON
-with open(path, "r", encoding="utf-8") as f:
-    dados_brutos = json.load(f)
+try:
+    with open(path, "r", encoding="utf-8") as f:
+        dados_brutos = json.load(f)
+except:
+    print("Sem novas votações")
+    sys.exit()
 
 # Metadados que queremos repetir da votação principal
 metadados = ["id", "data", "siglaOrgao", "idOrgao", "idEvento", "descricao", "aprovacao", "descUltimaAberturaVotacao"]
@@ -52,7 +58,25 @@ caminho_salvar = Path(__file__).parent / "Dados" / "Silver" / "slv_votacoes_deta
 # 1) Cria a pasta se ela não existir
 caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
 
-# 2) Salvando
-df_final.to_parquet(caminho_salvar, index=False)
+# 2) Identifica quais combinações de ano e mês existem no DataFrame atual
+particoes_alvo = df_final['votacao_data'].astype(str).drop_duplicates().tolist()
+
+# 3) Deleta manualmente apenas as pastas que serão impactadas
+for data in particoes_alvo:
+    # Garante a conversão para string no formato YYYY-MM-DD se for do tipo date/datetime
+    data_str = str(data) 
+    pasta_particao = caminho_salvar / f"votacao_data={data_str}"
+    print(pasta_particao)
+    
+    if pasta_particao.exists():
+        shutil.rmtree(pasta_particao)
+
+# 4) Salvando
+## Vamos particionar por ano/mês, pois a requisição apenas recebe parâmetro de ano e mês
+df_final.to_parquet(
+    path = caminho_salvar,
+    partition_cols = ['votacao_data'],
+    engine='pyarrow'
+)
 
 print(f"Sucesso! Arquivo parquet salvo em: {caminho_salvar}")

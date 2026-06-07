@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import time
+import sys
 
 # PARÂMETROS
 
@@ -18,19 +19,19 @@ data_ini = ''
 ############################################################################
 
 if data_ini == '':
-    data_ini = datetime.now().strftime("%Y-%m-%d")
+    data_ini = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
-data_hoje = datetime.now().strftime("%Y-%m-%d")
+data_ontem = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
 start_date = datetime.strptime(data_ini, "%Y-%m-%d")
-end_date = datetime.strptime(data_hoje, "%Y-%m-%d")
+end_date = datetime.strptime(data_ontem, "%Y-%m-%d")
 
 dates = []
 current_date = start_date
 
 while current_date <= end_date:
     dates.append(current_date)
-    current_date = current_date + relativedelta(months=1)
+    current_date = current_date + relativedelta(days=1)
 
 ############################################################################
 # 1) BAIXANDO DADOS DE PROPOSIÇÕES
@@ -38,32 +39,32 @@ while current_date <= end_date:
 proposicao = []
 contador = 1
 
-while contador <= 100:
-    
-    url = f'https://dadosabertos.camara.leg.br/api/v2/proposicoes?dataApresentacaoInicio={data_ini}&ordem=ASC&ordenarPor=id&pagina={contador}&itens=100'
+for date in dates:
+    while contador <= 100:
+        url = f'https://dadosabertos.camara.leg.br/api/v2/proposicoes?dataApresentacaoInicio={date.strftime("%Y-%m-%d")}&ordem=ASC&ordenarPor=id&pagina={contador}&itens=100'
 
-    response = requests.get(url, timeout = 60)
+        response = requests.get(url, timeout = 60)
 
-    if response.status_code == 200:
-        print("A requisição das proposições deu certo!")
+        if response.status_code == 200:
+            print("A requisição das proposições deu certo!")
 
-        if response.json()['dados'] != []:
+            if response.json()['dados'] != []:
 
-            dados_api = response.json()['dados']
+                dados_api = response.json()['dados']
 
-            print(contador) #print para acompanhar as requisições
+                print(date.strftime("%Y-%m-%d"), contador) #print para acompanhar as requisições
 
-            proposicao.append(dados_api)
+                proposicao.append(dados_api)
 
-            contador += 1
+                contador += 1
 
-            time.sleep(1)
-                
+                time.sleep(1)
+
+            else:
+                contador = 101  # Isto vai fazer o loop while parar
+
         else:
-            contador = 101  # Isto vai fazer o loop while parar
-
-    else:
-        print("A requisição das proposições não deu certo  :(")
+            print("A requisição das proposições não deu certo  :(")
 
 # Salvando os dados json
 
@@ -82,7 +83,11 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 # 2) BAIXANDO DADOS DE AUTORIA DE CADA PROPOSIÇÃO
 
 # Recuperando os ids de cada votação
-ids = [registro["id"] for registro in proposicao[0]]
+try:
+    ids = [registro["id"] for registro in proposicao[0]]
+except:
+    print("Sem novas proposições")
+    sys.exit()
 
 autoria_final = []
 
