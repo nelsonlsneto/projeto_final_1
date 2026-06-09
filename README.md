@@ -68,7 +68,7 @@ Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 - `dim_deputados` — `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (513 registros)
 - `dim_proposicoes_autoria` — `id`, `proposicao_id`, `nome`, `tipo`, `cod_tipo`, `proponente`
 - `dim_votacoes_detalhes` — `id`, `votacao_id`, `descricao`, `sigla_orgao`, `proposicao_objeto`
-- `dim_partidos` — _(a carregar no banco)_
+- `dim_partidos` — `id`, `sigla`, `nome`, `uri` (21 registros)
 
 > Todas as tabelas possuem `created_at` (e algumas `hash_registro`) como metadados de controle e particionamento.
 
