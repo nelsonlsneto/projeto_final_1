@@ -91,7 +91,12 @@ diretamente o email semanal do n8n (a IA agrega valor real ao produto, não é d
 
 **Prompt utilizado:**
 ```
-_(a documentar quando a Etapa 4 for implementada)_
+Sistema: Você é um analista de inteligência legislativa da consultoria Bússola Pública.
+Resuma a proposição abaixo em exatamente 3 linhas,
+em linguagem clara para um executivo corporativo.
+Seja objetivo. Não use jargão jurídico.
+
+Usuário: Proposição: {ementa}
 ```
 
 > **Controle de custo:** testado primeiro com 10 proposições para medir o custo antes
@@ -218,6 +223,9 @@ uv run SLV_GLD_Deputados_Despesas.py
 uv run SLV_GLD_Proposicoes.py
 uv run SLV_GLD_Votacoes.py
 uv run SLV_GLD_Votacoes_Votos.py
+
+# --- IA: resumo executivo das proposições (Etapa 4) ---
+uv run GLD_IA_Proposicoes.py   # requer OPENAI_API_KEY no .env
 ```
 
 > **Nunca** commite o arquivo `.env`. Ele já está no `.gitignore`.
