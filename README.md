@@ -278,6 +278,29 @@ O banco não é só um depósito de linhas — é **consultável e gera insight*
 
 ![Top 10 tipos de despesa por valor líquido](docs/img/top10_tipo_despesas_valor_liquido.png)
 
+### Camada de IA em ação (exemplos reais)
+
+A IA transforma a **ementa** (texto denso e jurídico) em um **resumo executivo** claro,
+gravado na coluna `resumo_ia`. Exemplos reais gerados pelo `gpt-4o-mini`:
+
+**Exemplo 1 — parecer de relator**
+> **Ementa:** "Parecer do Relator, Dep. Kim Kataguiri, pela compatibilidade e adequação
+> financeira e orçamentária; e, no mérito, pela aprovação."
+>
+> **Resumo IA:** "O Relator avaliou a proposta e concluiu que está em conformidade com as
+> normas financeiras e orçamentárias. Recomenda a aprovação da matéria. A decisão indica
+> que a proposta é viável e pode avançar no processo legislativo."
+
+**Exemplo 2 — requerimento de adiamento**
+> **Ementa:** "Requerimento de Adiamento da Discussão de Matéria Urgente - PL 1822/2024."
+>
+> **Resumo IA:** "A proposta solicita o adiamento da discussão do Projeto de Lei 1822/2024,
+> considerado urgente. O objetivo é ganhar mais tempo para análise e debate. A medida pode
+> impactar o cronograma legislativo."
+
+> O resumo entra direto no e-mail semanal do n8n — é a IA agregando valor visível ao
+> produto, não decoração.
+
 ---
 
 ## Banco de Dados (acesso para avaliação)
