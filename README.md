@@ -59,22 +59,24 @@ em engenharia de dados:
 Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 
 **Tabelas Fato (camada Gold)**
-- `fat_proposicoes` — `id`, `codigo_tipo_sigla`, `ementa`, `data_apresentacao`, `autor_nome`, **`resumo_ia`** (coluna a ser criada pela camada de IA)
-- `fat_votacoes` — `id_votacao`, `data`, `descricao`, `aprovacao`, `id_proposicao`
-- `fat_votacoes_votos` — `id_votacao`, `deputado_id`, `tipo_voto`
-- `fat_deputados_despesas` — `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
+- `fat_proposicoes` — `id`, `sigla_tipo`, `cod_tipo`, `numero`, `ano`, `ementa`, `data_apresentacao`, **`resumo_ia`** (coluna preenchida pela camada de IA)
+- `fat_votacoes` — `id_votacao`, `data`, `descricao`, `aprovacao`, `id_proposicao`, `ementa`, `proposicao_objeto`
+- `fat_votacoes_votos` — `id`, `votacao_id`, `deputado_id`, `tipo_voto`
+- `fat_deputados_despesas` — `id`, `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
 
 **Tabelas Dimensão (camada Silver)**
-- `dim_deputados` — `id`, `uri`, `nome`, `sigla_partido`, `uri_partido`, `sigla_uf`, `id_legislatura` (513 registros)
-- `dim_proposicoes_autoria` — autoria de cada proposição (`proposicao`, `nome`, `codigo_tipo`)
-- `dim_votacoes_detalhes` — detalhamento das votações
-- `dim_partidos` — `sigla`, `nome` _(a adicionar)_
+- `dim_deputados` — `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (513 registros)
+- `dim_proposicoes_autoria` — `id`, `proposicao_id`, `nome`, `tipo`, `cod_tipo`, `proponente`
+- `dim_votacoes_detalhes` — `id`, `votacao_id`, `descricao`, `sigla_orgao`, `proposicao_objeto`
+- `dim_partidos` — _(a carregar no banco)_
+
+> Todas as tabelas possuem `created_at` (e algumas `hash_registro`) como metadados de controle e particionamento.
 
 **Relacionamentos**
 - `fat_votacoes_votos.deputado_id` -> `dim_deputados.id`
 - `fat_deputados_despesas.deputado` -> `dim_deputados.id`
 - `fat_votacoes.id_proposicao` -> `fat_proposicoes.id`
-- `dim_proposicoes_autoria.proposicao` -> `fat_proposicoes.id`
+- `dim_proposicoes_autoria.proposicao_id` -> `fat_proposicoes.id`
 
 ---
 
@@ -283,6 +285,29 @@ O banco não é só um depósito de linhas — é **consultável e gera insight*
 **Tipos de despesa que mais consomem recursos** — divulgação e combustíveis no topo:
 
 ![Top 10 tipos de despesa por valor líquido](docs/img/top10_tipo_despesas_valor_liquido.png)
+
+### Camada de IA em ação (exemplos reais)
+
+A IA transforma a **ementa** (texto denso e jurídico) em um **resumo executivo** claro,
+gravado na coluna `resumo_ia`. Exemplos reais gerados pelo `gpt-4o-mini`:
+
+**Exemplo 1 — parecer de relator**
+> **Ementa:** "Parecer do Relator, Dep. Kim Kataguiri, pela compatibilidade e adequação
+> financeira e orçamentária; e, no mérito, pela aprovação."
+>
+> **Resumo IA:** "O Relator avaliou a proposta e concluiu que está em conformidade com as
+> normas financeiras e orçamentárias. Recomenda a aprovação da matéria. A decisão indica
+> que a proposta é viável e pode avançar no processo legislativo."
+
+**Exemplo 2 — requerimento de adiamento**
+> **Ementa:** "Requerimento de Adiamento da Discussão de Matéria Urgente - PL 1822/2024."
+>
+> **Resumo IA:** "A proposta solicita o adiamento da discussão do Projeto de Lei 1822/2024,
+> considerado urgente. O objetivo é ganhar mais tempo para análise e debate. A medida pode
+> impactar o cronograma legislativo."
+
+> O resumo entra direto no e-mail semanal do n8n — é a IA agregando valor visível ao
+> produto, não decoração.
 
 ---
 

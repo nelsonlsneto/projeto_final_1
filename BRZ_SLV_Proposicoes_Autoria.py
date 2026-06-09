@@ -19,15 +19,31 @@ except:
     print("Sem novas proposições")
     sys.exit()
 
-df_explodido = df_json.explode('autoria').reset_index(drop=True)
+# Se o JSON vier no formato antigo, com a coluna 'autoria'
+if "autoria" in df_json.columns:
+    df_explodido = df_json.explode("autoria").reset_index(drop=True)
+    df_autoria = pd.json_normalize(df_explodido["autoria"])
 
-df_autoria = pd.json_normalize(df_explodido['autoria'])
+    df_final = pd.concat(
+        [df_explodido["proposicao"], df_autoria],
+        axis=1
+    )
 
-df_final = pd.concat([df_explodido[['proposicao']], df_autoria], axis=1)
+    df_final = df_final.rename(columns={
+        "proposicao": "proposicao_id"
+    })
+
+# Se o JSON vier no formato novo, já aberto por autor
+else:
+    df_final = df_json.copy()
 
 # Escolhendo as colunas no df final
 
-colunas = ['proposicao', 'nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
+colunas = ['proposicao_id', 'nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
+
+for coluna in colunas:
+    if coluna not in df_final.columns:
+        df_final[coluna] = None
 
 df_final = df_final[colunas]
 
