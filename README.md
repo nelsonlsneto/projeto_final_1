@@ -89,6 +89,10 @@ clara — exatamente o que um cliente corporativo precisa ler em 10 segundos.
 O resumo é salvo na coluna `resumo_ia` da tabela `fat_proposicoes` e alimenta
 diretamente o email semanal do n8n (a IA agrega valor real ao produto, não é decoração).
 
+> **Caminho escolhido: B — Resumo executivo** (em vez do Caminho A, classificação por
+> embeddings). Optamos pelo resumo porque ele aparece **direto no produto final** (o e-mail
+> semanal), em linguagem clara para o cliente — valor imediato e fácil de demonstrar.
+
 **Prompt utilizado:**
 ```
 Sistema: Você é um analista de inteligência legislativa da consultoria Bússola Pública.
@@ -101,6 +105,23 @@ Usuário: Proposição: {ementa}
 
 > **Controle de custo:** testado primeiro com 10 proposições para medir o custo antes
 > de rodar o lote completo.
+
+### Exemplos reais (ementa → resumo)
+
+**Exemplo 1 — parecer de relator**
+> **Ementa:** "Parecer do Relator, Dep. Kim Kataguiri, pela compatibilidade e adequação
+> financeira e orçamentária; e, no mérito, pela aprovação."
+>
+> **Resumo IA:** "O Relator avaliou a proposta e concluiu que está em conformidade com as
+> normas financeiras e orçamentárias. Recomenda a aprovação da matéria. A decisão indica
+> que a proposta é viável e pode avançar no processo legislativo."
+
+**Exemplo 2 — requerimento de adiamento**
+> **Ementa:** "Requerimento de Adiamento da Discussão de Matéria Urgente - PL 1822/2024."
+>
+> **Resumo IA:** "A proposta solicita o adiamento da discussão do Projeto de Lei 1822/2024,
+> considerado urgente. O objetivo é ganhar mais tempo para análise e debate. A medida pode
+> impactar o cronograma legislativo."
 
 ---
 
@@ -157,8 +178,6 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
   de centavos. O custo é controlado testando primeiro com 10 proposições antes de rodar o
   lote completo.
 
-> _Decisão preliminar do grupo; a abordagem e o prompt finais serão confirmados na
-> implementação da camada de IA._
 
 ### Automação
 
@@ -224,6 +243,17 @@ uv run SLV_GLD_Proposicoes.py
 uv run SLV_GLD_Votacoes.py
 uv run SLV_GLD_Votacoes_Votos.py
 
+# --- Carga no PostgreSQL / Supabase (Etapa 3) ---
+uv run src/load/teste_conexao_supabase.py        # (opcional) testa a conexão
+uv run src/load/load_dim_deputados_supabase.py
+uv run src/load/load_dim_partidos_supabase.py
+uv run src/load/load_proposicoes_autoria_supabase.py
+uv run src/load/load_fat_proposicoes_supabase.py
+uv run src/load/load_despesas_supabase.py
+uv run src/load/load_votacoes_supabase.py
+uv run src/load/load_votacoes_detalhes_supabase.py
+uv run src/load/load_votacoes_votos_supabase.py
+
 # --- IA: resumo executivo das proposições (Etapa 4) ---
 uv run GLD_IA_Proposicoes.py   # requer OPENAI_API_KEY no .env
 ```
@@ -239,12 +269,16 @@ projeto_final_1/
 ├── API_BRZ_*.py        # Extração da API -> Bronze (JSON)
 ├── BRZ_SLV_*.py        # Limpeza Bronze -> Silver (Parquet)
 ├── SLV_GLD_*.py        # Modelagem Silver -> Gold (Parquet)
+├── GLD_IA_Proposicoes.py  # Camada de IA: resumo executivo (Etapa 4)
+├── src/load/*.py       # Carga das tabelas no PostgreSQL (Etapa 3)
+├── docs/img/           # Diagrama do pipeline e prints
 ├── Notas API.txt       # Anotações sobre os endpoints da API
 ├── pyproject.toml      # Dependências (uv)
+├── requirements.txt    # Dependências (pip)
 ├── .gitignore
 └── README.md
 ```
-_(serão adicionados: camada de IA e workflow n8n)_
+_(a adicionar: workflow n8n)_
 
 ---
 
@@ -285,29 +319,6 @@ O banco não é só um depósito de linhas — é **consultável e gera insight*
 **Tipos de despesa que mais consomem recursos** — divulgação e combustíveis no topo:
 
 ![Top 10 tipos de despesa por valor líquido](docs/img/top10_tipo_despesas_valor_liquido.png)
-
-### Camada de IA em ação (exemplos reais)
-
-A IA transforma a **ementa** (texto denso e jurídico) em um **resumo executivo** claro,
-gravado na coluna `resumo_ia`. Exemplos reais gerados pelo `gpt-4o-mini`:
-
-**Exemplo 1 — parecer de relator**
-> **Ementa:** "Parecer do Relator, Dep. Kim Kataguiri, pela compatibilidade e adequação
-> financeira e orçamentária; e, no mérito, pela aprovação."
->
-> **Resumo IA:** "O Relator avaliou a proposta e concluiu que está em conformidade com as
-> normas financeiras e orçamentárias. Recomenda a aprovação da matéria. A decisão indica
-> que a proposta é viável e pode avançar no processo legislativo."
-
-**Exemplo 2 — requerimento de adiamento**
-> **Ementa:** "Requerimento de Adiamento da Discussão de Matéria Urgente - PL 1822/2024."
->
-> **Resumo IA:** "A proposta solicita o adiamento da discussão do Projeto de Lei 1822/2024,
-> considerado urgente. O objetivo é ganhar mais tempo para análise e debate. A medida pode
-> impactar o cronograma legislativo."
-
-> O resumo entra direto no e-mail semanal do n8n — é a IA agregando valor visível ao
-> produto, não decoração.
 
 ---
 
