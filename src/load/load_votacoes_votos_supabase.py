@@ -22,7 +22,7 @@ ARQUIVO_GOLD = BASE_DIR / "Dados" / "Gold" / "gld_votacoes_votos.parquet"
 
 def criar_tabela() -> None:
     sql = """
-        CREATE TABLE IF NOT EXISTS votacoes_votos (
+        CREATE TABLE IF NOT EXISTS fat_votacoes_votos (
             id BIGSERIAL PRIMARY KEY,
             votacao_id TEXT,
             tipo_voto TEXT,
@@ -94,7 +94,7 @@ def carregar_supabase(df: pd.DataFrame) -> None:
     )
 
     sql = """
-        INSERT INTO votacoes_votos (
+        INSERT INTO fat_votacoes_votos (
             votacao_id,
             tipo_voto,
             deputado_id,

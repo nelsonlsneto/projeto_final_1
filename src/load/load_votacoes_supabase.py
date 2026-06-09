@@ -17,24 +17,25 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL)
 
+# Lê do Gold — gerado pelo SLV_GLD_Votacoes.py
 ARQUIVO_GOLD = BASE_DIR / "Dados" / "Gold" / "gld_votacoes.parquet"
 
 
 def criar_tabela() -> None:
-
+    # votacao_id e votacao_descricao removidas — duplicatas do merge
     sql = """
         CREATE TABLE IF NOT EXISTS fat_votacoes (
-            id_votacao       TEXT,
-            data             DATE,
+            id_votacao        TEXT,
+            data              DATE,
             proposicao_objeto TEXT,
-            descricao        TEXT,
-            aprovacao        TEXT,
-            votacao_id_orgao INTEGER,
-            origem_lista     TEXT,
-            id_proposicao    BIGINT,
-            ementa           TEXT,
-            hash_registro    TEXT UNIQUE,
-            created_at       TIMESTAMP DEFAULT NOW()
+            descricao         TEXT,
+            aprovacao         TEXT,
+            votacao_id_orgao  INTEGER,
+            origem_lista      TEXT,
+            id_proposicao     BIGINT,
+            ementa            TEXT,
+            hash_registro     TEXT UNIQUE,
+            created_at        TIMESTAMP DEFAULT NOW()
         );
     """
     with engine.begin() as connection:
@@ -57,9 +58,12 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = pd.read_parquet(ARQUIVO_GOLD)
 
-    # Renomeia votacao_idOrgao para snake_case
+    # Renomeia a coluna com nome diferente do esperado
     df = df.rename(columns={"votacao_idOrgao": "votacao_id_orgao"})
 
+    # Remove colunas duplicadas do merge:
+    #   votacao_id       → idêntica a id_votacao
+    #   votacao_descricao → idêntica a descricao
     colunas = [
         "id_votacao",
         "data",
@@ -78,10 +82,10 @@ def carregar_arquivo() -> pd.DataFrame:
 
     df = df[colunas]
 
-    df["data"] = pd.to_datetime(df["data"], errors="coerce").dt.date
-    df["aprovacao"] = df["aprovacao"].astype(str)
+    df["data"]            = pd.to_datetime(df["data"], errors="coerce").dt.date
+    df["aprovacao"]       = df["aprovacao"].astype(str)
     df["votacao_id_orgao"] = pd.to_numeric(df["votacao_id_orgao"], errors="coerce").astype("Int64")
-    df["id_proposicao"] = pd.to_numeric(df["id_proposicao"], errors="coerce").astype("Int64")
+    df["id_proposicao"]   = pd.to_numeric(df["id_proposicao"],    errors="coerce").astype("Int64")
 
     df["hash_registro"] = df.apply(gerar_hash, axis=1)
     df = df.drop_duplicates(subset=["hash_registro"])

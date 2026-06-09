@@ -22,7 +22,7 @@ ARQUIVO_SILVER = BASE_DIR / "Dados" / "Silver" / "slv_votacoes_detalhes.parquet"
 
 def criar_tabela() -> None:
     sql = """
-        CREATE TABLE IF NOT EXISTS votacoes_detalhes (
+        CREATE TABLE IF NOT EXISTS dim_votacoes_detalhes (
             id BIGSERIAL PRIMARY KEY,
             votacao_id TEXT,
             votacao_data DATE,
@@ -138,7 +138,7 @@ def carregar_supabase(df: pd.DataFrame) -> None:
     )
 
     sql = """
-        INSERT INTO votacoes_detalhes (
+        INSERT INTO dim_votacoes_detalhes (
             votacao_id,
             votacao_data,
             votacao_sigla_orgao,
