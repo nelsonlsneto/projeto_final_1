@@ -178,8 +178,6 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
   de centavos. O custo é controlado testando primeiro com 10 proposições antes de rodar o
   lote completo.
 
-> _Decisão preliminar do grupo; a abordagem e o prompt finais serão confirmados na
-> implementação da camada de IA._
 
 ### Automação
 
@@ -271,12 +269,16 @@ projeto_final_1/
 ├── API_BRZ_*.py        # Extração da API -> Bronze (JSON)
 ├── BRZ_SLV_*.py        # Limpeza Bronze -> Silver (Parquet)
 ├── SLV_GLD_*.py        # Modelagem Silver -> Gold (Parquet)
+├── GLD_IA_Proposicoes.py  # Camada de IA: resumo executivo (Etapa 4)
+├── src/load/*.py       # Carga das tabelas no PostgreSQL (Etapa 3)
+├── docs/img/           # Diagrama do pipeline e prints
 ├── Notas API.txt       # Anotações sobre os endpoints da API
 ├── pyproject.toml      # Dependências (uv)
+├── requirements.txt    # Dependências (pip)
 ├── .gitignore
 └── README.md
 ```
-_(serão adicionados: camada de IA e workflow n8n)_
+_(a adicionar: workflow n8n)_
 
 ---
 
