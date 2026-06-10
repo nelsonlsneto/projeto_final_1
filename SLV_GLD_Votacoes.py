@@ -62,6 +62,8 @@ df_det.rename(columns={'id': 'id_proposicao'}, inplace=True)
 
 df_merge = pd.merge(df_vot, df_det, left_on='id_votacao', right_on='votacao_id', how="left")
 
+df_merge.drop_duplicates(subset=["id_votacao"], inplace=True)
+
 # Salvando os dados
 
 caminho_salvar = Path(__file__).parent / "Dados" / "Gold" / "gld_votacoes.parquet"

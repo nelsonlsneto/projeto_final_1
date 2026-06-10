@@ -14,15 +14,15 @@ import sys
 
 path = Path(r".\Dados\Bronze\brz_proposicoes.json")
 
-# 1. Lê o arquivo de texto bruto
-dados_brutos = path.read_text(encoding="utf-8")
+with open(path, "r", encoding="utf-8") as f:
+    dados_json = json.load(f)
 
-# 2. Converte o texto em uma lista Python
-dados_lista = json.loads(dados_brutos)
+# Desembrulha as listas internas em uma única lista linear
+lista_achatada = [item for sublista in dados_json for item in sublista]
 
-# 3. Extrai a lista interna [0] e cria o DataFrame diretamente
+# 3. Cria DataFrame
 try:
-    df = pd.DataFrame(dados_lista[0])
+    df = pd.DataFrame(lista_achatada)
 except:
     print("Sem novas proposições")
     sys.exit()
