@@ -68,6 +68,8 @@ df_merge = df_merge[['id', 'codigo_tipo_sigla', 'ementa', 'data_apresentacao', '
 
 df_merge.rename(columns={'nome': 'nome_autor'}, inplace=True)
 
+df_merge.drop_duplicates(subset=["id"], inplace=True)
+
 # SALVANDO OS DADOS
 
 caminho_salvar = Path(__file__).parent / "Dados" / "Gold" / "gld_proposicoes.parquet"

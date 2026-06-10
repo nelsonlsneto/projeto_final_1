@@ -37,9 +37,9 @@ while current_date <= end_date:
 # 1) BAIXANDO DADOS DE PROPOSIÇÕES
 
 proposicao = []
-contador = 1
 
 for date in dates:
+    contador = 1
     while contador <= 100:
         url = f'https://dadosabertos.camara.leg.br/api/v2/proposicoes?dataApresentacaoInicio={date.strftime("%Y-%m-%d")}&ordem=ASC&ordenarPor=id&pagina={contador}&itens=100'
 
@@ -82,12 +82,22 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 ###############################################################################
 # 2) BAIXANDO DADOS DE AUTORIA DE CADA PROPOSIÇÃO
 
-# Recuperando os ids de cada votação
+path = Path(r".\Dados\Bronze\brz_proposicoes.json")
+
+with open(path, "r", encoding="utf-8") as f:
+    dados_json = json.load(f)
+
+# Desembrulha as listas internas em uma única lista linear
+lista_achatada = [item for sublista in dados_json for item in sublista]
+
+# 3. Cria DataFrame
 try:
-    ids = [registro["id"] for registro in proposicao[0]]
+    df = pd.DataFrame(lista_achatada)
 except:
     print("Sem novas proposições")
     sys.exit()
+
+ids = df["id"].tolist()
 
 autoria_final = []
 

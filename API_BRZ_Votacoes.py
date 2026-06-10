@@ -82,12 +82,22 @@ print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
 ###############################################################################
 # 2) BAIXANDO DADOS DE CADA ID DE VOTAÇÃO
 
-# Recuperando os ids de cada votação
+path = Path(r".\Dados\Bronze\brz_votacoes.json")
+
+with open(path, "r", encoding="utf-8") as f:
+    dados_json = json.load(f)
+
+# Desembrulha as listas internas em uma única lista linear
+lista_achatada = [item for sublista in dados_json for item in sublista]
+
+# 3. Cria DataFrame
 try:
-    ids = [registro["id"] for registro in votacao[0]]
+    df_final = pd.DataFrame(lista_achatada)
 except:
     print("Sem novas votações")
     sys.exit()
+
+ids = df_final["id"].tolist()
 
 votacao_final = []
 
