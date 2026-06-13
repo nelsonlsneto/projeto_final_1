@@ -8,6 +8,9 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 import time
 import sys
+import asyncio
+import httpx
+from tqdm.asyncio import tqdm_asyncio
 
 # PARÂMETROS
 
@@ -15,13 +18,15 @@ import sys
 # Podemos alterar manualmente a data inicial para pegar dados históricos (formato YYYY-MM-DD)
 
 data_ini = ''
+data_ontem = ''
 
 ############################################################################
 
 if data_ini == '':
     data_ini = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
-data_ontem = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
+if data_ontem == '':
+    data_ontem = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
 start_date = datetime.strptime(data_ini, "%Y-%m-%d")
 end_date = datetime.strptime(data_ontem, "%Y-%m-%d")
@@ -36,97 +41,190 @@ while current_date <= end_date:
 ############################################################################
 # 1) BAIXANDO DADOS DE PROPOSIÇÕES
 
-proposicao = []
+async def baixar_pagina_data(client, date_str, pagina, semaphore):
+    """Baixa uma página específica de uma data."""
+    url = (
+        f"https://dadosabertos.camara.leg.br/api/v2/proposicoes?dataApresentacaoInicio={date_str}&dataApresentacaoFim={date_str}&ordem=ASC&ordenarPor=id&pagina={pagina}&itens=100"
+    )
 
-for date in dates:
-    contador = 1
-    while contador <= 100:
-        url = f'https://dadosabertos.camara.leg.br/api/v2/proposicoes?dataApresentacaoInicio={date.strftime("%Y-%m-%d")}&ordem=ASC&ordenarPor=id&pagina={contador}&itens=100'
+    async with semaphore:
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            # Adicionado 'verify=False' temporariamente caso seu ambiente tenha bloqueio de SSL (comum em redes corporativas/governamentais)
+            response = await client.get(url, headers=headers, timeout=20.0)
 
-        response = requests.get(url, timeout = 60)
+            if response.status_code == 200:
+                dados = response.json().get("dados", [])
+                return dados
+            
+            print(f"\n[Aviso] Erro HTTP {response.status_code} na data {date_str}, pág {pagina}")
+            return None
+        except Exception as e:
+            # Exibe o erro real caso a requisição esteja caindo por timeout ou rede
+            print(f"\n[Erro de Conexão] {date_str} pág {pagina}: {str(e)}")
+            return None
 
-        if response.status_code == 200:
-            print("A requisição das proposições deu certo!")
 
-            if response.json()['dados'] != []:
+async def processar_data_completa(client, date, semaphore, pbar):
+    """Baixa todas as páginas de uma única data sequencialmente."""
+    date_str = date.strftime("%Y-%m-%d")
+    proposicoes_data = []
 
-                dados_api = response.json()['dados']
+    for pagina in range(1, 101):
+        dados_pagina = await baixar_pagina_data(client, date_str, pagina, semaphore)
 
-                print(date.strftime("%Y-%m-%d"), contador) #print para acompanhar as requisições
+        # Se retornar uma lista vazia ou None, as páginas deste dia acabaram
+        if not dados_pagina:
+            break
 
-                proposicao.append(dados_api)
+        proposicoes_data.append(dados_pagina)
+        
+        # Atualiza a barra de progresso global a cada página baixada com sucesso
+        pbar.update(1)
 
-                contador += 1
+        # Pausa leve para respeitar a API
+        await asyncio.sleep(0.05)
 
-                time.sleep(1)
+    return proposicoes_data
 
-            else:
-                contador = 101  # Isto vai fazer o loop while parar
 
-        else:
-            print("A requisição das proposições não deu certo  :(")
+async def main():
+    # Semáforos mais conservadores para evitar que o servidor rejeite a conexão de início
+    semaphore = asyncio.Semaphore(15)
+    limits = httpx.Limits(max_keepalive_connections=10, max_connections=20)
 
-# Salvando os dados json
+    caminho_salvar = (
+        Path(__file__).parent / "Dados" / "Bronze" / "brz_proposicoes.json"
+    )
+    caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
 
-caminho_salvar = Path(__file__).parent / "Dados" / "Bronze" / "brz_proposicoes.json"
+    print(f"Iniciando requisições assíncronas para {len(dates)} datas...")
 
-# 1) Cria a pasta se ela não existir
-caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
+    # Criamos uma barra de progresso manual baseada em páginas estimadas
+    with tqdm_asyncio(desc="Páginas processadas", unit="pág") as pbar:
+        # Desabilitamos a verificação SSL rígida se o httpx travar por certificados locais do ambiente
+        async with httpx.AsyncClient(limits=limits, verify=False) as client:
+            
+            # Passamos o objeto da barra de progresso (pbar) para dentro das funções
+            tasks = [processar_data_completa(client, dt, semaphore, pbar) for dt in dates]
 
-# 2) Salvando
-with open(caminho_salvar, "w", encoding="utf-8") as arquivo:
-    json.dump(proposicao, arquivo, indent=4, ensure_ascii=False)
+            resultados = await asyncio.gather(*tasks)
 
-print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
+            proposicao_final = []
+            for lote_data in resultados:
+                if lote_data:
+                    proposicao_final.extend(lote_data)
+
+    # Salvando os dados
+    with open(caminho_salvar, "w", encoding="utf-8") as arquivo:
+        json.dump(proposicao_final, arquivo, indent=4, ensure_ascii=False)
+
+    print(f"\nSucesso! Arquivo JSON salvo em: {caminho_salvar}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 ###############################################################################
 # 2) BAIXANDO DADOS DE AUTORIA DE CADA PROPOSIÇÃO
 
 path = Path(r".\Dados\Bronze\brz_proposicoes.json")
 
-with open(path, "r", encoding="utf-8") as f:
-    dados_json = json.load(f)
-
-# Desembrulha as listas internas em uma única lista linear
-lista_achatada = [item for sublista in dados_json for item in sublista]
-
-# 3. Cria DataFrame
 try:
-    df = pd.DataFrame(lista_achatada)
-except:
-    print("Sem novas proposições")
+    with open(path, "r", encoding="utf-8") as f:
+        dados_json = json.load(f)
+except FileNotFoundError:
+    print(f"Arquivo não encontrado: {path}")
     sys.exit()
 
-ids = df["id"].tolist()
+lista_achatada = [item for sublista in dados_json for item in sublista]
 
-autoria_final = []
+try:
+    df = pd.DataFrame(lista_achatada)
+    id_proposicao_lista = df["id"].tolist()
+except KeyError:
+    print("Coluna 'id' não encontrada no JSON.")
+    sys.exit()
+except Exception:
+    print("Sem novas proposições ou erro ao criar DataFrame")
+    sys.exit()
 
-for id in ids:
-    url = f"https://dadosabertos.camara.leg.br/api/v2/proposicoes/{id}/autores"
 
-    response = requests.get(url)
+async def buscar_autores(client, pid, semaphore):
+    url = f"https://dadosabertos.camara.leg.br/api/v2/proposicoes/{pid}/autores"
+    
+    async with semaphore:
+        try:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            }
+            response = await client.get(url, headers=headers, timeout=15.0)
+            if response.status_code == 200:
+                return response.json()['dados']
+            return None
+        except Exception:
+            return None
 
-    if response.status_code == 200:
-        print(f"A requisição da autoria da proposição {id} deu certo!")
 
-        dados_autoria = response.json().get("dados", [])
+# Função auxiliar para dividir a lista em lotes (chunks)
+def dividir_em_lotes(lista, tamanho_lote):
+    for i in range(0, len(lista), tamanho_lote):
+        yield lista[i : i + tamanho_lote]
 
-        for autor in dados_autoria:
-            autor["proposicao_id"] = id
 
-        autoria_final.extend(dados_autoria)
+async def main():
+    # Configurações de alta performance
+    semaphore = asyncio.Semaphore(40)
+    limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
 
-    else:
-        print(f"A requisição da autoria da proposição {id} não deu certo  :(")
-            
-# Salvando os dados json
-caminho_salvar = Path(__file__).parent / "Dados" / "Bronze" / "brz_proposicoes_autoria.json"
+    tamanho_lote = 500
+    lotes = list(dividir_em_lotes(id_proposicao_lista, tamanho_lote))
 
-# 1) Cria a pasta se ela não existir
-caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
+    caminho_salvar = (
+        Path(__file__).parent / "Dados" / "Bronze" / "brz_proposicoes_autoria.json"
+    )
+    caminho_salvar.parent.mkdir(parents=True, exist_ok=True)
 
-# 2) Salvando
-with open(caminho_salvar, "w", encoding="utf-8") as arquivo:
-    json.dump(autoria_final, arquivo, indent=4, ensure_ascii=False)
+    # Se o arquivo já existe, carrega os dados anteriores para não sobrescrever
+    dados_acumulados = []
+    if caminho_salvar.exists():
+        try:
+            with open(caminho_salvar, "r", encoding="utf-8") as f:
+                dados_acumulados = json.load(f)
+            print(f"Arquivo existente encontrado. {len(dados_acumulados)} registros carregados.")
+        except Exception:
+            print("Arquivo existente corrompido, iniciando um novo.")
 
-print(f"Sucesso! Arquivo JSON salvo em: {caminho_salvar}")
+    print(f"Total de IDs: {len(id_proposicao_lista)} | Divididos em {len(lotes)} lotes de {tamanho_lote}.")
+
+    async with httpx.AsyncClient(limits=limits) as client:
+        for idx, lote in enumerate(lotes, start=1):
+            print(f"\n--- Processando Lote {idx}/{len(lotes)} ({len(lote)} IDs) ---")
+
+            tasks = [buscar_autores(client, pid, semaphore) for pid in lote]
+
+            # Roda o lote atual em paralelo
+            resultados = await tqdm_asyncio.gather(
+                *tasks, desc=f"Lote {idx} baixando"
+            )
+
+            # Filtra os nulos do lote atual
+            dados_lote = [r for r in resultados if r is not None]
+
+            # Adiciona ao acumulador e salva no arquivo imediatamente
+            dados_acumulados.extend(dados_lote)
+
+            with open(caminho_salvar, "w", encoding="utf-8") as f:
+                json.dump(dados_acumulados, f, indent=4, ensure_ascii=False)
+
+            print(f"Lote {idx} salvo com sucesso! Total acumulado: {len(dados_acumulados)} registros.")
+
+    print(f"\nProcesso concluído! Todos os lotes foram salvos em: {caminho_salvar}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

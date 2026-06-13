@@ -15,13 +15,15 @@ import sys
 # Podemos alterar manualmente a data inicial para pegar dados históricos (formato YYYY-MM-DD)
 
 data_ini = ''
+data_ontem = ''
 
 ############################################################################
 
 if data_ini == '':
     data_ini = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
-data_ontem = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
+if data_ontem == '':
+    data_ontem = (datetime.now() - relativedelta(days=1)).strftime("%Y-%m-%d")
 
 start_date = datetime.strptime(data_ini, "%Y-%m-%d")
 end_date = datetime.strptime(data_ontem, "%Y-%m-%d")

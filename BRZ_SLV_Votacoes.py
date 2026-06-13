@@ -14,20 +14,27 @@ import sys
 
 path = Path(r".\Dados\Bronze\brz_votacoes.json")
 
-with open(path, "r", encoding="utf-8") as f:
-    dados_json = json.load(f)
-
-# Desembrulha as listas internas em uma única lista linear
-lista_achatada = [item for sublista in dados_json for item in sublista]
-
-# 3. Cria DataFrame
 try:
-    df_final = pd.DataFrame(lista_achatada)
-except:
-    print("Sem novas votações")
+    with open(path, "r", encoding="utf-8") as f:
+        dados_json = json.load(f)
+except FileNotFoundError:
+    print(f"Arquivo Bronze não encontrado em: {path}")
     sys.exit()
 
-# 4. Filtra apenas as colunas desejadas
+lista_achatada = dados_json
+
+# Cria DataFrame
+if not lista_achatada:
+    print("Sem novas votações (JSON vazio).")
+    sys.exit()
+
+try:
+    df_final = pd.DataFrame(lista_achatada)
+except Exception as e:
+    print(f"Erro ao criar DataFrame: {e}")
+    sys.exit()
+
+# Filtra apenas as colunas desejadas
 colunas = [
     "id",
     "data",
