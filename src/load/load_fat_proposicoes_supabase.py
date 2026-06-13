@@ -48,7 +48,6 @@ def carregar_arquivo() -> pd.DataFrame:
     df = df.rename(columns={
         "siglaTipo":             "sigla_tipo",
         "codTipo":               "cod_tipo",
-        "dataApresentacao":      "data_apresentacao",
         # coluna nova de partição — vira data_apresentacao se não existir a original
         "dataApresentacao_data": "data_apresentacao",
     })
