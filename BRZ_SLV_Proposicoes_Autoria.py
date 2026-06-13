@@ -20,31 +20,20 @@ except:
     print("Sem novas proposições")
     sys.exit()
 
-# Desembrulha as listas internas (transforma lista de listas em lista única)
-lista_achatada = [item for sublista in dados_json for item in sublista]
-
-# Cria o DataFrame do Pandas
-df = pd.DataFrame(lista_achatada)
-
-# Extrai o último pedaço do texto da URI
-df["proposicao_id"] = df["uri"].str.split("/").str[-1]
-
-# Converte para número ignorando erros (textos vazios viram NaN)
-df["proposicao_id"] = pd.to_numeric(df["proposicao_id"], errors="coerce")
-
-# Remove as linhas que eram vazias/inválidas para poder transformar em int64
-df = df.dropna(subset=["proposicao_id"])
-
-# Agora converte com segurança para número inteiro
-df["proposicao_id"] = df["proposicao_id"].astype("int64")
+df = pd.json_normalize(
+    dados_json, 
+    record_path=['autoria'], 
+    meta=['proposicao']
+)
 
 # Escolhendo as colunas no df final
 
-colunas = ['proposicao_id', 'nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
+colunas = ['proposicao', 'nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
 
 df_final = df[colunas]
 
-df_final = df_final.drop_duplicates(subset=["proposicao_id"])
+
+df_final = df_final.drop_duplicates(subset=["proposicao"])
 
 # Salvando os dados
 

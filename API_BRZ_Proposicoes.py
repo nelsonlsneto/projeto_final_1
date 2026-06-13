@@ -93,8 +93,8 @@ async def processar_data_completa(client, date, semaphore, pbar):
 
 async def main():
     # Semáforos mais conservadores para evitar que o servidor rejeite a conexão de início
-    semaphore = asyncio.Semaphore(15)
-    limits = httpx.Limits(max_keepalive_connections=10, max_connections=20)
+    semaphore = asyncio.Semaphore(10)
+    limits = httpx.Limits(max_keepalive_connections=5, max_connections=15)
 
     caminho_salvar = (
         Path(__file__).parent / "Dados" / "Bronze" / "brz_proposicoes.json"
@@ -163,8 +163,14 @@ async def buscar_autores(client, pid, semaphore):
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             }
             response = await client.get(url, headers=headers, timeout=15.0)
+
             if response.status_code == 200:
-                return response.json()['dados']
+                dados_api = response.json().get("dados", [])
+
+                # Só cria a estrutura se houver dados de votos reais
+                if dados_api:
+                    return {"proposicao": pid, "autoria": dados_api}
+
             return None
         except Exception:
             return None
