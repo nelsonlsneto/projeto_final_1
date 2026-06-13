@@ -14,38 +14,37 @@ import sys
 path = Path(r".\Dados\Bronze\brz_proposicoes_autoria.json")
 
 try:
-    df_json = pd.read_json(path)
+    with open(path, "r", encoding="utf-8") as f:
+        dados_json = json.load(f)
 except:
     print("Sem novas proposições")
     sys.exit()
 
-# Se o JSON vier no formato antigo, com a coluna 'autoria'
-if "autoria" in df_json.columns:
-    df_explodido = df_json.explode("autoria").reset_index(drop=True)
-    df_autoria = pd.json_normalize(df_explodido["autoria"])
+# Desembrulha as listas internas (transforma lista de listas em lista única)
+lista_achatada = [item for sublista in dados_json for item in sublista]
 
-    df_final = pd.concat(
-        [df_explodido["proposicao"], df_autoria],
-        axis=1
-    )
+# Cria o DataFrame do Pandas
+df = pd.DataFrame(lista_achatada)
 
-    df_final = df_final.rename(columns={
-        "proposicao": "proposicao_id"
-    })
+# Extrai o último pedaço do texto da URI
+df["proposicao_id"] = df["uri"].str.split("/").str[-1]
 
-# Se o JSON vier no formato novo, já aberto por autor
-else:
-    df_final = df_json.copy()
+# Converte para número ignorando erros (textos vazios viram NaN)
+df["proposicao_id"] = pd.to_numeric(df["proposicao_id"], errors="coerce")
+
+# Remove as linhas que eram vazias/inválidas para poder transformar em int64
+df = df.dropna(subset=["proposicao_id"])
+
+# Agora converte com segurança para número inteiro
+df["proposicao_id"] = df["proposicao_id"].astype("int64")
 
 # Escolhendo as colunas no df final
 
 colunas = ['proposicao_id', 'nome', 'codTipo', 'tipo', 'ordemAssinatura', 'proponente']
 
-for coluna in colunas:
-    if coluna not in df_final.columns:
-        df_final[coluna] = None
+df_final = df[colunas]
 
-df_final = df_final[colunas]
+df_final = df_final.drop_duplicates(subset=["proposicao_id"])
 
 # Salvando os dados
 
