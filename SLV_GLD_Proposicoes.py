@@ -58,12 +58,12 @@ df_prop.rename(columns={
     'dataApresentacao_data': 'data_apresentacao'
 }, inplace=True)
 
-df_aut = df_aut[['proposicao_id', 'nome', 'codTipo']]
+df_aut = df_aut[['proposicao', 'nome', 'codTipo']]
 
 df_aut.rename(columns={'codTipo': 'codigo_tipo'}, inplace=True)
 
-# Conflito resolvido: right_on='proposicao_id' (nome real da coluna no Silver de autoria)
-df_merge = pd.merge(df_prop, df_aut, left_on='id', right_on='proposicao_id', how='left')
+# Conflito resolvido: right_on='proposicao' (nome real da coluna no Silver de autoria)
+df_merge = pd.merge(df_prop, df_aut, left_on='id', right_on='proposicao', how='left')
 
 df_merge = df_merge[['id', 'codigo_tipo_sigla', 'ementa', 'data_apresentacao', 'nome', 'codigo_tipo']]
 
