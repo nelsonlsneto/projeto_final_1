@@ -48,7 +48,7 @@ def carregar_arquivo() -> pd.DataFrame:
     })
 
     colunas = [
-        "proposicao_id",
+        "proposicao",
         "nome",
         "cod_tipo",
         "tipo",
@@ -61,6 +61,9 @@ def carregar_arquivo() -> pd.DataFrame:
             df[coluna] = None
 
     df = df[colunas]
+
+    df = df.rename(columns={"proposicao": "proposicao_id"})
+
 
     df["proposicao_id"]    = pd.to_numeric(df["proposicao_id"],    errors="coerce").astype("Int64")
     df["cod_tipo"]         = pd.to_numeric(df["cod_tipo"],         errors="coerce").astype("Int64")
