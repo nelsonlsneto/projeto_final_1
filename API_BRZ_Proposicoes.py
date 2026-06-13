@@ -155,25 +155,39 @@ except Exception:
 
 async def buscar_autores(client, pid, semaphore):
     url = f"https://dadosabertos.camara.leg.br/api/v2/proposicoes/{pid}/autores"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
     
+    # 3 tentativas por ID antes de desistir
+    tentativas = 3
+    tempo_espera = 2 
+
     async with semaphore:
-        try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            }
-            response = await client.get(url, headers=headers, timeout=15.0)
+        for tentativa in range(tentativas):
+            try:
+                response = await client.get(url, headers=headers, timeout=15.0)
 
-            if response.status_code == 200:
-                dados_api = response.json().get("dados", [])
+                # Se sofrer rate limit (429) ou erro de servidor (5xx), espera e tenta de novo
+                if response.status_code in (429, 500, 502, 503, 504):
+                    await asyncio.sleep(tempo_espera * (tentativa + 1))
+                    continue
 
-                # Só cria a estrutura se houver dados de votos reais
-                if dados_api:
-                    return {"proposicao": pid, "autoria": dados_api}
+                if response.status_code == 200:
+                    dados_api = response.json().get("dados", [])
+                    # Retorna mesmo vazio para você saber que a requisição teve sucesso
+                    return {"proposicao": pid, "autoria": dados_api, "sucesso": True}
+                
+                # Outros status de erro (ex: 404) que não valem a pena tentar de novo
+                return {"proposicao": pid, "autoria": [], "sucesso": False, "erro": response.status_code}
 
-            return None
-        except Exception:
-            return None
+            except (httpx.RequestError, httpx.TimeoutException) as e:
+                if tentativa == tentativas - 1:
+                    # Registra que o ID falhou após todas as tentativas
+                    return {"proposicao": pid, "autoria": [], "sucesso": False, "erro": str(e)}
+                await asyncio.sleep(tempo_espera * (tentativa + 1))
+                
+        return {"proposicao": pid, "autoria": [], "sucesso": False, "erro": "Max retries reached"}
 
 
 # Função auxiliar para dividir a lista em lotes (chunks)
@@ -184,8 +198,8 @@ def dividir_em_lotes(lista, tamanho_lote):
 
 async def main():
     # Configurações de alta performance
-    semaphore = asyncio.Semaphore(40)
-    limits = httpx.Limits(max_keepalive_connections=20, max_connections=50)
+    semaphore = asyncio.Semaphore(20)
+    limits = httpx.Limits(max_keepalive_connections=10, max_connections=30)
 
     tamanho_lote = 500
     lotes = list(dividir_em_lotes(id_proposicao_lista, tamanho_lote))
