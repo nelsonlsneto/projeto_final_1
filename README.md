@@ -1,4 +1,4 @@
-# Radar Legislativo — Inteligência Legislativa Automatizada
+# Radar Legislativo - Inteligência Legislativa Automatizada
 
 > Pipeline de Engenharia de Dados que captura, organiza e enriquece com IA os dados
 > abertos da **Câmara dos Deputados**, transformando um oceano de informação pública
@@ -26,7 +26,7 @@ A consultoria fictícia **Bússola Pública** vende inteligência legislativa, m
 depende de analistas lendo o site da Câmara manualmente. Não escala, não tem histórico
 organizado e a classificação por tema é inconsistente.
 
-**A solução — Radar Legislativo:** um pipeline automatizado que captura tudo o que
+**A solução - Radar Legislativo:** um pipeline automatizado que captura tudo o que
 importa, resume com IA e entrega pronto para virar produto.
 
 ---
@@ -59,16 +59,16 @@ em engenharia de dados:
 Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 
 **Tabelas Fato (camada Gold)**
-- `fat_proposicoes` — `id`, `sigla_tipo`, `cod_tipo`, `numero`, `ano`, `ementa`, `data_apresentacao`, **`resumo_ia`** (coluna preenchida pela camada de IA)
-- `fat_votacoes` — `id_votacao`, `data`, `descricao`, `aprovacao`, `id_proposicao`, `ementa`, `proposicao_objeto`
-- `fat_votacoes_votos` — `id`, `votacao_id`, `deputado_id`, `tipo_voto`
-- `fat_deputados_despesas` — `id`, `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
+- `fat_proposicoes` - `id`, `sigla_tipo`, `cod_tipo`, `numero`, `ano`, `ementa`, `data_apresentacao`, **`resumo_ia`** (coluna preenchida pela camada de IA)
+- `fat_votacoes` - `id_votacao`, `data`, `descricao`, `aprovacao`, `id_proposicao`, `ementa`, `proposicao_objeto`
+- `fat_votacoes_votos` - `id`, `votacao_id`, `deputado_id`, `tipo_voto`
+- `fat_deputados_despesas` - `id`, `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
 
 **Tabelas Dimensão (camada Silver)**
-- `dim_deputados` — `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (520 registros)
-- `dim_proposicoes_autoria` — `id`, `proposicao_id`, `nome`, `tipo`, `cod_tipo`, `proponente`
-- `dim_votacoes_detalhes` — `id`, `votacao_id`, `descricao`, `sigla_orgao`, `proposicao_objeto`
-- `dim_partidos` — `id`, `sigla`, `nome`, `uri` (21 registros)
+- `dim_deputados` - `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (520 registros)
+- `dim_proposicoes_autoria` - `id`, `proposicao_id`, `nome`, `tipo`, `cod_tipo`, `proponente`
+- `dim_votacoes_detalhes` - `id`, `votacao_id`, `votacao_data`, `votacao_descricao`, `votacao_sigla_orgao`, `votacao_aprovacao`, `proposicao_id`
+- `dim_partidos` - `id`, `sigla`, `nome`, `uri` (21 registros)
 
 > Todas as tabelas possuem `created_at` (e algumas `hash_registro`) como metadados de controle e particionamento.
 
@@ -84,14 +84,14 @@ Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 
 Para cada proposição, a **ementa** (texto jurídico denso) é enviada a um LLM
 (`gpt-4o-mini` da OpenAI) que devolve um **resumo executivo de 3 linhas** em linguagem
-clara — exatamente o que um cliente corporativo precisa ler em 10 segundos.
+clara - exatamente o que um cliente corporativo precisa ler em 10 segundos.
 
 O resumo é salvo na coluna `resumo_ia` da tabela `fat_proposicoes` e alimenta
 diretamente o email semanal do n8n (a IA agrega valor real ao produto, não é decoração).
 
-> **Caminho escolhido: B — Resumo executivo** (em vez do Caminho A, classificação por
+> **Caminho escolhido: B - Resumo executivo** (em vez do Caminho A, classificação por
 > embeddings). Optamos pelo resumo porque ele aparece **direto no produto final** (o e-mail
-> semanal), em linguagem clara para o cliente — valor imediato e fácil de demonstrar.
+> semanal), em linguagem clara para o cliente - valor imediato e fácil de demonstrar.
 
 **Prompt utilizado:**
 ```
@@ -108,7 +108,7 @@ Usuário: Proposição: {ementa}
 
 ### Exemplos reais (ementa → resumo)
 
-**Exemplo 1 — parecer de relator**
+**Exemplo 1 - parecer de relator**
 > **Ementa:** "Parecer do Relator, Dep. Kim Kataguiri, pela compatibilidade e adequação
 > financeira e orçamentária; e, no mérito, pela aprovação."
 >
@@ -116,7 +116,7 @@ Usuário: Proposição: {ementa}
 > normas financeiras e orçamentárias. Recomenda a aprovação da matéria. A decisão indica
 > que a proposta é viável e pode avançar no processo legislativo."
 
-**Exemplo 2 — requerimento de adiamento**
+**Exemplo 2 - requerimento de adiamento**
 > **Ementa:** "Requerimento de Adiamento da Discussão de Matéria Urgente - PL 1822/2024."
 >
 > **Resumo IA:** "A proposta solicita o adiamento da discussão do Projeto de Lei 1822/2024,
@@ -153,12 +153,12 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
   responsabilidades claras: dado bruto, dado limpo e dado modelado. Facilita encontrar e
   corrigir problemas, e é um padrão consolidado no mercado de engenharia de dados.
 - **Salvar o JSON bruto na camada Bronze antes de qualquer transformação.** Se a etapa de
-  transformação quebrar, não é preciso chamar a API de novo — basta reprocessar o arquivo
+  transformação quebrar, não é preciso chamar a API de novo - basta reprocessar o arquivo
   já salvo. Isso poupa tempo e respeita os limites da API pública.
 - **Parquet nas camadas Silver e Gold.** Formato colunar, tipado e compactado: ocupa menos
   espaço e é muito mais rápido de ler do que CSV/JSON para o volume que manipulamos.
 - **PostgreSQL gerenciado no Supabase.** Plano gratuito generoso, painel web para visualizar
-  as tabelas e rodar SQL, e link fácil de compartilhar na avaliação — sem precisar instalar
+  as tabelas e rodar SQL, e link fácil de compartilhar na avaliação - sem precisar instalar
   banco na máquina. (O `pgvector` já vem habilitado, deixando aberta a porta para evoluções
   com embeddings no futuro.)
 
@@ -294,27 +294,27 @@ projeto_final_1/
 
 A base reúne dados reais da Câmara dos Deputados, já tratados e modelados.
 
-**Dimensão de deputados** — os deputados carregados da base (520 registros, inclui suplentes):
+**Dimensão de deputados** - os deputados carregados da base (520 registros, inclui suplentes):
 
 ![Tabela dim_deputados](docs/img/dim_deputados.png)
 
-**Autoria das proposições** — quem propôs cada matéria:
+**Autoria das proposições** - quem propôs cada matéria:
 
 ![Tabela dim_proposicoes_autoria](docs/img/dim_proposicoes_autoria.png)
 
-**Despesas (cota parlamentar)** — milhares de gastos declarados:
+**Despesas (cota parlamentar)** - milhares de gastos declarados:
 
 ![Tabela fat_deputados_despesas](docs/img/fat_deputados_despesas.png)
 
-**Votações** — as votações ocorridas no período:
+**Votações** - as votações ocorridas no período:
 
 ![Tabela fat_votacoes](docs/img/fat_votacoes.png)
 
 ### Análises de exemplo (consultas SQL)
 
-O banco não é só um depósito de linhas — é **consultável e gera insight**. Alguns exemplos:
+O banco não é só um depósito de linhas - é **consultável e gera insight**. Alguns exemplos:
 
-**Maiores bancadas da Câmara** — o PL lidera com 97 deputados:
+**Maiores bancadas da Câmara** - o PL lidera com 97 deputados:
 
 ![Top 10 partidos por número de deputados](docs/img/top10_partidos_por_deputados.png)
 
@@ -322,7 +322,7 @@ O banco não é só um depósito de linhas — é **consultável e gera insight*
 
 ![Top 10 deputados por total de gastos](docs/img/top10_deputados_gastos.png)
 
-**Tipos de despesa que mais consomem recursos** — divulgação e combustíveis no topo:
+**Tipos de despesa que mais consomem recursos** - divulgação e combustíveis no topo:
 
 ![Top 10 tipos de despesa por valor líquido](docs/img/top10_tipo_despesas_valor_liquido.png)
 
@@ -332,7 +332,7 @@ O banco não é só um depósito de linhas — é **consultável e gera insight*
 
 O banco está hospedado no **Supabase** (PostgreSQL gerenciado, região São Paulo) e pode
 ser consultado por qualquer cliente SQL usando o usuário **somente-leitura** abaixo
-(criado especificamente para avaliação — só faz `SELECT`, não consegue alterar dados):
+(criado especificamente para avaliação - só faz `SELECT`, não consegue alterar dados):
 
 ```
 postgresql://avaliador.dxtqisdoimywsdrbdkzh:Radar_Leitura_2026@aws-1-sa-east-1.pooler.supabase.com:5432/postgres
@@ -362,11 +362,11 @@ order by qtd_deputados desc;
 ---
 
 ## Autores e Contribuidores
-- Alex Macedo Teles Silva — [@AlexMacedo45](https://github.com/AlexMacedo45)
-- Gabriel Ferreira Davila — [@Ferreira0826](https://github.com/Ferreira0826)
-- Natasha Sugiyama — [@nasugiyama](https://github.com/nasugiyama)
-- Nelson L. S. Neto — [@nelsonlsneto](https://github.com/nelsonlsneto)
-- Raphael Gonçalves de Melo Valente — [@rgmelovalente](https://github.com/rgmelovalente)
+- Alex Macedo Teles Silva - [@AlexMacedo45](https://github.com/AlexMacedo45)
+- Gabriel Ferreira Davila - [@Ferreira0826](https://github.com/Ferreira0826)
+- Natasha Sugiyama - [@nasugiyama](https://github.com/nasugiyama)
+- Nelson L. S. Neto - [@nelsonlsneto](https://github.com/nelsonlsneto)
+- Raphael Gonçalves de Melo Valente - [@rgmelovalente](https://github.com/rgmelovalente)
 
 ---
 
