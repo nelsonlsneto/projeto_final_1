@@ -106,8 +106,9 @@ Usuário: Proposição: {ementa}
 ```
 
 > **Controle de custo:** conforme recomendado no escopo, a camada de IA foi aplicada a
-> uma amostra de proposições (em vez do volume total), o suficiente para demonstrar o valor
-> no produto final (o e-mail semanal) mantendo o custo baixo.
+> uma amostra de cerca de 10 proposições (em vez do volume total), o suficiente para
+> demonstrar o valor no produto final (o e-mail semanal) mantendo o custo baixo. Rodar a
+> IA em todo o histórico fica como próximo passo.
 
 ### Exemplos reais (ementa → resumo)
 
@@ -187,8 +188,9 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
   aparece **direto no produto final** (o e-mail semanal), em linguagem clara para um
   executivo. Ou seja, a IA agrega valor visível e imediato, não fica como enfeite técnico.
 - **Modelo `gpt-4o-mini`.** Qualidade mais que suficiente para resumir ementas, a um custo
-  de centavos. O custo é controlado testando primeiro com 10 proposições antes de rodar o
-  lote completo.
+  de centavos. Para controlar o custo, a IA foi rodada em uma amostra de cerca de 10
+  proposições, suficiente para demonstrar a camada. Processar o volume total fica como
+  próximo passo.
 
 
 ### Automação
