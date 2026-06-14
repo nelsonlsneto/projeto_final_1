@@ -1,0 +1,149 @@
+{
+  "name": "Radar Legislativo - Email Semanal",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "3c3551c4-f3be-4e83-98cf-55689416edf7",
+      "name": "Disparo Manual (teste)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        560,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "89b1d225-9d00-4904-ad58-13247a0d9f91",
+      "name": "Agendador Semanal (seg 08h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, sigla_tipo, numero, ano, ementa, resumo_ia, data_apresentacao\nFROM fat_proposicoes\nWHERE resumo_ia IS NOT NULL\n  AND length(trim(ementa)) > 10\nORDER BY data_apresentacao DESC\nLIMIT 5;",
+        "options": {}
+      },
+      "id": "5cbbca09-b397-4c6f-8aa4-c6943c107d15",
+      "name": "Top 5 proposicoes (Supabase)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        848,
+        16
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_POSTGRES_CRED",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta o corpo do e-mail (HTML) com os resumos da IA\nconst itens = $input.all().map(i => i.json);\n\nconst linhas = itens.map((p, idx) => `\n  <div style=\"margin-bottom:16px;padding:12px;border-left:4px solid #3ECF8E;background:#f6f8fa;border-radius:4px;\">\n    <strong>${idx + 1}. ${p.sigla_tipo} ${p.numero}/${p.ano}</strong><br/>\n    <span style=\"color:#444;\">${p.resumo_ia}</span>\n  </div>`).join('');\n\nconst html = `\n  <div style=\"font-family:Arial,sans-serif;max-width:640px;margin:auto;\">\n    <h2 style=\"color:#1a1a1a;\">Radar Legislativo — Top ${itens.length} proposicoes da semana</h2>\n    <p style=\"color:#666;\">Resumos gerados por IA a partir das ementas da Camara dos Deputados.</p>\n    ${linhas}\n    <hr style=\"border:none;border-top:1px solid #ddd;margin-top:24px;\"/>\n    <small style=\"color:#999;\">Bussola Publica · Radar Legislativo</small>\n  </div>`;\n\nreturn [{ json: { html, total: itens.length } }];"
+      },
+      "id": "2555263d-abdc-401f-b427-a59ef154f397",
+      "name": "Monta o E-mail (HTML)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "nasugiyama23@gmail.com",
+        "toEmail": "nasugiyama23@gmail.com",
+        "subject": "Radar Legislativo — Resumo semanal da Camara",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "cb9cd6b4-2d0c-4b89-85d5-fa726a3d7e30",
+      "name": "Enviar E-mail",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1280,
+        16
+      ],
+      "webhookId": "1a014b2b-d0cd-4580-b4e9-8bc6d46e24ad",
+      "credentials": {
+        "smtp": {
+          "id": "REPLACE_SMTP_CRED",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Disparo Manual (teste)": {
+      "main": [
+        [
+          {
+            "node": "Top 5 proposicoes (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendador Semanal (seg 08h)": {
+      "main": [
+        [
+          {
+            "node": "Top 5 proposicoes (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Top 5 proposicoes (Supabase)": {
+      "main": [
+        [
+          {
+            "node": "Monta o E-mail (HTML)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monta o E-mail (HTML)": {
+      "main": [
+        [
+          {
+            "node": "Enviar E-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}
