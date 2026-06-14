@@ -47,8 +47,9 @@ em engenharia de dados:
 | **IA** | PostgreSQL | Resumo executivo de proposições (coluna `resumo_ia`) via LLM, gravado no banco |
 | **n8n** | Workflow | Automação: email semanal com as proposições mais relevantes |
 
-> A extração puxa, por padrão, os dados de **1 dia** (o orquestrador roda diariamente).
-> Cargas históricas (ex.: 30 dias) são feitas manualmente ajustando a data inicial.
+> A extração puxa, por padrão, os dados de **1 dia** e é pensada para rodar diariamente
+> (agendar a execução automática via cron ou n8n fica como próximo passo). Cargas históricas
+> (ex.: 30 dias) são feitas manualmente ajustando a data inicial.
 
 > Fonte editável do diagrama: [`docs/img/pipeline.excalidraw`](docs/img/pipeline.excalidraw) (abra em [excalidraw.com](https://excalidraw.com)).
 
@@ -174,10 +175,11 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
 
 ### Ingestão
 
-- **Extração incremental de 1 dia, com orquestração diária.** A API retorna, por padrão, uma
+- **Extração incremental de 1 dia, pensada para orquestração diária.** A API retorna, por padrão, uma
   janela recente; em vez de baixar anos de histórico de uma vez (lento e arriscado), o
-  pipeline puxa o movimento do dia e roda todo dia. Cargas históricas maiores são feitas
-  manualmente ajustando a data inicial, quando necessário.
+  pipeline puxa o movimento do dia. Agendar a execução automática (cron ou n8n) fica como
+  próximo passo. Cargas históricas maiores são feitas manualmente ajustando a data inicial,
+  quando necessário.
 - **Requisições assíncronas na extração de proposições.** A extração de proposições e autoria
   usa `httpx` com chamadas assíncronas, o que acelera bastante o download de grandes volumes
   (por exemplo, no backfill histórico de 30 dias).
