@@ -44,7 +44,7 @@ em engenharia de dados:
 | **Silver** | Parquet | Seleção de colunas, normalização de estruturas aninhadas, tipagem. Guarda as tabelas dimensão. |
 | **Gold** | Parquet | Joins entre tabelas, validações de qualidade. Guarda as tabelas fato. |
 | **PostgreSQL** | Supabase | Banco final, consultável e pronto para produto |
-| **IA** | PostgreSQL | Resumo executivo de cada proposição (coluna `resumo_ia`) via LLM, gravado no banco |
+| **IA** | PostgreSQL | Resumo executivo de proposições (coluna `resumo_ia`) via LLM, gravado no banco |
 | **n8n** | Workflow | Automação: email semanal com as proposições mais relevantes |
 
 > A extração puxa, por padrão, os dados de **1 dia** (o orquestrador roda diariamente).
@@ -71,6 +71,8 @@ Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 - `dim_partidos` - `id`, `sigla`, `nome`, `uri` (21 registros)
 
 > Todas as tabelas possuem `created_at` (e algumas `hash_registro`) como metadados de controle e particionamento.
+>
+> A `fat_proposicoes` é carregada a partir da camada Silver (já no formato final de fato); as demais tabelas fato vêm da Gold.
 
 **Relacionamentos**
 - `fat_votacoes_votos.deputado_id` -> `dim_deputados.id`
@@ -103,8 +105,9 @@ Seja objetivo. Não use jargão jurídico.
 Usuário: Proposição: {ementa}
 ```
 
-> **Controle de custo:** testado primeiro com 10 proposições para medir o custo antes
-> de rodar o lote completo.
+> **Controle de custo:** conforme recomendado no escopo, a camada de IA foi aplicada a
+> uma amostra de proposições (em vez do volume total), o suficiente para demonstrar o valor
+> no produto final (o e-mail semanal) mantendo o custo baixo.
 
 ### Exemplos reais (ementa → resumo)
 
@@ -174,6 +177,9 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
   janela recente; em vez de baixar anos de histórico de uma vez (lento e arriscado), o
   pipeline puxa o movimento do dia e roda todo dia. Cargas históricas maiores são feitas
   manualmente ajustando a data inicial, quando necessário.
+- **Requisições assíncronas na extração de proposições.** A extração de proposições e autoria
+  usa `httpx` com chamadas assíncronas, o que acelera bastante o download de grandes volumes
+  (por exemplo, no backfill histórico de 30 dias).
 
 ### Camada de IA
 
@@ -314,7 +320,7 @@ A base reúne dados reais da Câmara dos Deputados, já tratados e modelados.
 
 O banco não é só um depósito de linhas - é **consultável e gera insight**. Alguns exemplos:
 
-**Maiores bancadas da Câmara** - o PL lidera com 97 deputados:
+**Maiores bancadas da Câmara** - o PL lidera com 99 deputados:
 
 ![Top 10 partidos por número de deputados](docs/img/top10_partidos_por_deputados.png)
 
