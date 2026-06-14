@@ -37,6 +37,10 @@ print(f"Total de proposições no Parquet: {len(df)}")
 conn = psycopg2.connect(DATABASE_URL)
 cur = conn.cursor()
 
+# Garante que a coluna resumo_ia existe (idempotente; necessario em banco zerado)
+cur.execute("ALTER TABLE fat_proposicoes ADD COLUMN IF NOT EXISTS resumo_ia TEXT;")
+conn.commit()
+
 cur.execute("SELECT id FROM fat_proposicoes WHERE resumo_ia IS NOT NULL;")
 ids_prontos = {row[0] for row in cur.fetchall()}
 
