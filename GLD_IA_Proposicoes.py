@@ -84,6 +84,11 @@ for i, (_, row) in enumerate(df_pendentes.iterrows(), start=1):
     prop_id = row["id"]
     ementa = row["ementa"]
 
+    # pula ementas vazias/curtas (evita resumo-lixo do tipo "voce nao incluiu a proposicao")
+    if ementa is None or len(str(ementa).strip()) < 10:
+        print(f"[{i}/{total}] id={prop_id} - ementa vazia, pulando")
+        continue
+
     try:
         resumo = resumir_ementa(str(ementa))
         cur.execute(
