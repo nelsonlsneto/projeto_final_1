@@ -65,7 +65,7 @@ Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 - `fat_deputados_despesas` — `id`, `deputado`, `tipo_despesa`, `data_documento`, `nome_fornecedor`, `valor_liquido`
 
 **Tabelas Dimensão (camada Silver)**
-- `dim_deputados` — `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (513 registros)
+- `dim_deputados` — `id`, `nome`, `sigla_partido`, `sigla_uf`, `id_legislatura`, `url_foto`, `email` (520 registros)
 - `dim_proposicoes_autoria` — `id`, `proposicao_id`, `nome`, `tipo`, `cod_tipo`, `proponente`
 - `dim_votacoes_detalhes` — `id`, `votacao_id`, `descricao`, `sigla_orgao`, `proposicao_objeto`
 - `dim_partidos` — `id`, `sigla`, `nome`, `uri` (21 registros)
@@ -128,12 +128,18 @@ Usuário: Proposição: {ementa}
 ## Automação (n8n)
 
 Workflow agendado que, semanalmente:
-1. Consulta o PostgreSQL pelas proposições mais relevantes da semana;
-2. Monta um email com título, autor e o `resumo_ia`;
+1. Consulta o PostgreSQL pelas proposições mais relevantes da semana (com `resumo_ia`);
+2. Monta um email em HTML com cada proposição e o resumo gerado por IA;
 3. Envia automaticamente para o cliente.
 
-> Workflow exportado: `n8n/workflow_email_semanal.json` _(a inserir)_
-> Print de execução bem-sucedida: _(a inserir)_
+Fluxo: **Agendador semanal → Consulta no Supabase → Monta o e-mail (HTML) → Envia e-mail**.
+
+> Workflow exportado: [`n8n/workflow_email_semanal.json`](n8n/workflow_email_semanal.json)
+> (importe no n8n e reconecte as credenciais de Postgres e SMTP).
+
+**Exemplo de e-mail recebido (execução real):**
+
+![Email semanal gerado pelo n8n](docs/img/n8n_email.png)
 
 ---
 
@@ -271,6 +277,7 @@ projeto_final_1/
 ├── SLV_GLD_*.py        # Modelagem Silver -> Gold (Parquet)
 ├── GLD_IA_Proposicoes.py  # Camada de IA: resumo executivo (Etapa 4)
 ├── src/load/*.py       # Carga das tabelas no PostgreSQL (Etapa 3)
+├── n8n/                # Workflow de automação n8n (email semanal)
 ├── docs/img/           # Diagrama do pipeline e prints
 ├── Notas API.txt       # Anotações sobre os endpoints da API
 ├── pyproject.toml      # Dependências (uv)
@@ -278,7 +285,6 @@ projeto_final_1/
 ├── .gitignore
 └── README.md
 ```
-_(a adicionar: workflow n8n)_
 
 ---
 
@@ -288,7 +294,7 @@ _(a adicionar: workflow n8n)_
 
 A base reúne dados reais da Câmara dos Deputados, já tratados e modelados.
 
-**Dimensão de deputados** — os 513 deputados em exercício:
+**Dimensão de deputados** — os deputados carregados da base (520 registros, inclui suplentes):
 
 ![Tabela dim_deputados](docs/img/dim_deputados.png)
 
