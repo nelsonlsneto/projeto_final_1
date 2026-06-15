@@ -1,11 +1,10 @@
 # Radar Legislativo - Inteligência Legislativa Automatizada
 
-> Pipeline de Engenharia de Dados que captura, organiza e enriquece com IA os dados
-> abertos da **Câmara dos Deputados**, transformando um oceano de informação pública
-> em sinal acionável para clientes corporativos.
+> Um pipeline de engenharia de dados que pega os dados abertos da **Câmara dos Deputados**,
+> organiza e resume com IA, e entrega pronto pra um cliente corporativo usar.
 
-Produto de inteligência legislativa da consultoria fictícia **Bússola Pública**,
-desenvolvido como **Projeto Integrador** da pós-graduação em Engenharia de Dados e IA.
+Esse é o nosso **Projeto Integrador** da pós em Engenharia de Dados e IA. O cenário é uma
+consultoria fictícia, a **Bússola Pública**, que vende inteligência legislativa.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![Pandas](https://img.shields.io/badge/Pandas-3.0-150458)
@@ -17,24 +16,24 @@ desenvolvido como **Projeto Integrador** da pós-graduação em Engenharia de Da
 
 ## O Problema
 
-Toda semana, **513 deputados** decidem pautas que afetam diretamente empresas e
-cidadãos: tributação, regulação de IA, saneamento, reforma trabalhista. Cada voto,
-proposição e despesa é **dado público**, atualizado diariamente por uma
+Toda semana, **513 deputados** decidem pautas que mexem com empresas e cidadãos:
+tributação, regulação de IA, saneamento, reforma trabalhista. Cada voto, proposição e
+despesa é **dado público**, atualizado todo dia por uma
 [API aberta e gratuita](https://dadosabertos.camara.leg.br/swagger/api.html).
 
-A consultoria fictícia **Bússola Pública** vende inteligência legislativa, mas hoje
-depende de analistas lendo o site da Câmara manualmente. Não escala, não tem histórico
-organizado e a classificação por tema é inconsistente.
+O problema é que a **Bússola Pública** hoje depende de analistas lendo o site da Câmara
+na mão. Isso não escala, não guarda histórico organizado e cada analista classifica do
+seu jeito.
 
-**A solução - Radar Legislativo:** um pipeline automatizado que captura tudo o que
-importa, resume com IA e entrega pronto para virar produto.
+A nossa solução é o **Radar Legislativo**: um pipeline que pega tudo o que importa,
+resume com IA e deixa pronto pra virar produto.
 
 ---
 
 ## Arquitetura do Pipeline
 
-O projeto segue a **Arquitetura Medalhão** (Bronze -> Silver -> Gold), padrão de mercado
-em engenharia de dados:
+A gente seguiu a **Arquitetura Medalhão** (Bronze -> Silver -> Gold), que é o padrão de
+mercado em engenharia de dados:
 
 ![Diagrama do pipeline do Radar Legislativo](docs/img/pipeline.png)
 
@@ -57,7 +56,7 @@ em engenharia de dados:
 
 ## Modelo de Dados
 
-Modelagem dimensional simples (estrela), carregada no PostgreSQL:
+A gente modelou em estrela (tabelas fato e dimensão) e carregou no PostgreSQL:
 
 **Tabelas Fato (camada Gold)**
 - `fat_proposicoes` - `id`, `sigla_tipo`, `cod_tipo`, `numero`, `ano`, `ementa`, `data_apresentacao`, **`resumo_ia`** (coluna preenchida pela camada de IA)
@@ -85,16 +84,16 @@ Modelagem dimensional simples (estrela), carregada no PostgreSQL:
 
 ## Camada de IA
 
-Para cada proposição, a **ementa** (texto jurídico denso) é enviada a um LLM
-(`gpt-4o-mini` da OpenAI) que devolve um **resumo executivo de 3 linhas** em linguagem
-clara - exatamente o que um cliente corporativo precisa ler em 10 segundos.
+A gente pega a **ementa** de cada proposição (que é um texto jurídico bem denso) e manda
+pro `gpt-4o-mini` da OpenAI, que devolve um **resumo de 3 linhas** em linguagem clara. É o
+tipo de coisa que um executivo lê em 10 segundos.
 
-O resumo é salvo na coluna `resumo_ia` da tabela `fat_proposicoes` e alimenta
-diretamente o email semanal do n8n (a IA agrega valor real ao produto, não é decoração).
+Esse resumo fica salvo na coluna `resumo_ia` da tabela `fat_proposicoes` e é exatamente o
+que vai no e-mail semanal do n8n. Ou seja, a IA serve pra alguma coisa de verdade no produto.
 
-> **Caminho escolhido: B - Resumo executivo** (em vez do Caminho A, classificação por
-> embeddings). Optamos pelo resumo porque ele aparece **direto no produto final** (o e-mail
-> semanal), em linguagem clara para o cliente - valor imediato e fácil de demonstrar.
+> **Caminho escolhido: B, resumo executivo** (em vez do Caminho A, classificação por
+> embeddings). A gente foi de resumo porque ele aparece **direto no e-mail semanal**, em
+> linguagem que o cliente entende na hora.
 
 **Prompt utilizado:**
 ```
@@ -132,10 +131,10 @@ Usuário: Proposição: {ementa}
 
 ## Automação (n8n)
 
-Workflow agendado que, semanalmente:
-1. Consulta o PostgreSQL pelas proposições mais relevantes da semana (com `resumo_ia`);
-2. Monta um email em HTML com cada proposição e o resumo gerado por IA;
-3. Envia automaticamente para o cliente.
+Um workflow que, toda semana:
+1. Consulta no PostgreSQL as proposições mais recentes que têm `resumo_ia`;
+2. Monta um e-mail em HTML com cada proposição e o resumo;
+3. Manda sozinho pro cliente.
 
 Fluxo: **Agendador semanal → Consulta no Supabase → Monta o e-mail (HTML) → Envia e-mail**.
 
@@ -150,7 +149,7 @@ Fluxo: **Agendador semanal → Consulta no Supabase → Monta o e-mail (HTML) �
 
 ## Decisões Técnicas
 
-As principais escolhas de engenharia do projeto e o raciocínio por trás de cada uma.
+As escolhas que a gente fez e o porquê de cada uma.
 
 ### Arquitetura e armazenamento
 
@@ -186,9 +185,9 @@ As principais escolhas de engenharia do projeto e o raciocínio por trás de cad
 
 ### Camada de IA
 
-- **Resumo executivo (em vez de classificação por embeddings).** O resumo gerado pela IA
-  aparece **direto no produto final** (o e-mail semanal), em linguagem clara para um
-  executivo. Ou seja, a IA agrega valor visível e imediato, não fica como enfeite técnico.
+- **Resumo executivo (em vez de classificação por embeddings).** O resumo da IA aparece
+  direto no e-mail semanal, em linguagem que o executivo entende. Preferimos isso a deixar
+  a IA só como uma etiqueta de tema que ninguém vê.
 - **Modelo `gpt-4o-mini`.** Qualidade mais que suficiente para resumir ementas, a um custo
   de centavos. Para controlar o custo, a IA foi rodada em uma amostra de cerca de 10
   proposições, suficiente para demonstrar a camada. Processar o volume total fica como
@@ -302,7 +301,7 @@ projeto_final_1/
 
 ### Tabelas populadas no PostgreSQL (Supabase)
 
-A base reúne dados reais da Câmara dos Deputados, já tratados e modelados.
+A base tem dados reais da Câmara, já tratados e modelados.
 
 **Dimensão de deputados** - os deputados carregados da base (520 registros, inclui suplentes):
 
@@ -322,7 +321,7 @@ A base reúne dados reais da Câmara dos Deputados, já tratados e modelados.
 
 ### Análises de exemplo (consultas SQL)
 
-O banco não é só um depósito de linhas - é **consultável e gera insight**. Alguns exemplos:
+O banco não é só um monte de linhas, dá pra tirar insight com SQL. Alguns exemplos:
 
 **Maiores bancadas da Câmara** - o PL lidera com 99 deputados:
 
