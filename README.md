@@ -6,6 +6,8 @@
 Esse é o nosso **Projeto Integrador** da pós em Engenharia de Dados e IA. O cenário é uma
 consultoria fictícia, a **Bússola Pública**, que vende inteligência legislativa.
 
+> Apresentação (pitch de 6 slides): [`docs/apresentacao/Radar_Legislativo_Pitch.pptx`](docs/apresentacao/Radar_Legislativo_Pitch.pptx)
+
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![Pandas](https://img.shields.io/badge/Pandas-3.0-150458)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Supabase-3ECF8E)
@@ -287,6 +289,7 @@ projeto_final_1/
 ├── GLD_IA_Proposicoes.py  # Camada de IA: resumo executivo (Etapa 4)
 ├── src/load/*.py       # Carga das tabelas no PostgreSQL (Etapa 3)
 ├── n8n/                # Workflow de automação n8n (email semanal)
+├── docs/apresentacao/  # Apresentação (pitch, 6 slides)
 ├── docs/img/           # Diagrama do pipeline e prints
 ├── Notas API.txt       # Anotações sobre os endpoints da API
 ├── pyproject.toml      # Dependências (uv)
